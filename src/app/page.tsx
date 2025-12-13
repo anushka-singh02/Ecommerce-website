@@ -1,0 +1,256 @@
+"use client"
+
+import Link from "next/link"
+import Image from "next/image"
+import { Header } from "@/components/Header"
+import { Footer } from "@/components/Footer"
+import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import { ArrowRight } from "lucide-react"
+
+export default function Home() {
+  const featuredProducts = [
+    {
+      id: 1,
+      name: "Girls Lift Tee",
+      price: 35,
+      originalPrice: 45,
+      image: "https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/render/image/public/document-uploads/img2-1765447269678.jpg?width=600&height=600&resize=contain",
+      tag: "New",
+    },
+    {
+      id: 2,
+      name: "Raawr Classic Tee - Black",
+      price: 55,
+      originalPrice: 70,
+      image: "https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/render/image/public/document-uploads/DSC_0116-1765447272114.jpg?width=600&height=600&resize=contain",
+      tag: "Bestseller",
+    },
+    {
+      id: 3,
+      name: "Raawr Classic Tee - White",
+      price: 40,
+      image: "https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/render/image/public/document-uploads/DSC_0013-1765447268417.JPG?width=600&height=600&resize=contain",
+      tag: "New",
+    },
+    {
+      id: 4,
+      name: "Down Bad Crying Tee",
+      price: 65,
+      originalPrice: 80,
+      image: "https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/render/image/public/document-uploads/DSC_0024-1765447268972.JPG?width=600&height=600&resize=contain",
+      tag: "Sale",
+    },
+  ]
+
+  const bestsellerProducts = [
+    {
+      id: 5,
+      name: "Raawr Classic Tee - Beige",
+      price: 45,
+      image: "https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/render/image/public/document-uploads/DSC_0104-1765447268802.JPG?width=600&height=600&resize=contain",
+      tag: "Bestseller",
+    },
+    {
+      id: 6,
+      name: "Girls Lift Oversized Tee",
+      price: 60,
+      originalPrice: 75,
+      image: "https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/render/image/public/document-uploads/DSC_0127-1765447268704.JPG?width=600&height=600&resize=contain",
+      tag: "Bestseller",
+    },
+    {
+      id: 7,
+      name: "More Than An Athlete Sweatshirt",
+      price: 30,
+      image: "https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/render/image/public/document-uploads/IMG_6043-1765447271104.JPG?width=600&height=600&resize=contain",
+      tag: "Bestseller",
+    },
+    {
+      id: 8,
+      name: "Girls Lift Tee - Pink",
+      price: 70,
+      originalPrice: 85,
+      image: "https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/render/image/public/document-uploads/img2-1765447269678.jpg?width=600&height=600&resize=contain",
+      tag: "Bestseller",
+    },
+  ]
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <Header />
+
+      <main className="flex-1">
+        {/* Hero Section */}
+        <section className="relative h-[600px] lg:h-[700px] ">
+          <div className="absolute inset-0">
+            <Image
+              src="https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/render/image/public/document-uploads/heroimg-1765447146644.jpg?width=1920&height=1080&resize=cover"
+              alt="Hero"
+              fill
+              className="object-cover "
+              priority
+            />
+          </div>
+          <div className="relative container mx-auto px-4 h-full flex items-end lg:items-center pb-12 lg:pb-0">
+            <div className="max-w-2xl text-white">
+              <h1 className="text-3xl md:text-5xl lg:text-7xl font-bold mb-4 lg:mb-6 drop-shadow-lg">
+                Elevate Your Performance
+              </h1>
+              <p className="text-base md:text-xl lg:text-2xl mb-6 lg:mb-8 drop-shadow-md">
+                Premium athletic wear engineered for the modern athlete.
+              </p>
+              <div className="flex gap-4">
+                <Link href="/products">
+                  <Button size="lg" className="bg-primary hover:bg-primary/90 text-white">
+                    Shop Now <ArrowRight className="ml-2 h-5 w-5" />
+                  </Button>
+                </Link>
+                <Link href="/products">
+                  <Button size="lg" variant="outline" className="bg-black hover:bg-black/90 text-white border-black">
+                    Explore Collections
+                  </Button>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Bestsellers Section */}
+        <section className="py-20">
+          <div className="container mx-auto px-4">
+            <div className="flex justify-between items-end mb-12">
+              <div>
+                <h2 className="text-4xl font-bold mb-4">Bestsellers</h2>
+                <p className="text-xl text-muted-foreground">
+                  Our most loved products
+                </p>
+              </div>
+              <Link href="/products">
+                <Button variant="outline" className="hidden md:flex items-center gap-2">
+                  View All <ArrowRight className="h-4 w-4" />
+                </Button>
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+              {bestsellerProducts.map((product) => (
+                <Link key={product.id} href={`/product/${product.id}`}>
+                  <Card className="overflow-hidden group cursor-pointer hover:shadow-xl transition-all duration-300">
+                    <div className="relative h-[250px] md:h-[350px]">
+                      <Image
+                        src={product.image}
+                        alt={product.name}
+                        fill
+                        className="object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                      {product.tag && (
+                        <div className="absolute top-2 left-2 md:top-4 md:left-4 px-2 py-1 md:px-3 md:py-1 bg-primary text-primary-foreground text-xs md:text-sm font-medium rounded-full">
+                          {product.tag}
+                        </div>
+                      )}
+                    </div>
+                    <CardContent className="p-3 md:p-4">
+                      <h3 className="font-semibold mb-2 text-sm md:text-base">{product.name}</h3>
+                      <div className="flex items-center gap-2">
+                        <span className="text-base md:text-lg font-bold">${product.price}</span>
+                        {product.originalPrice && (
+                          <span className="text-xs md:text-sm text-muted-foreground line-through">
+                            ${product.originalPrice}
+                          </span>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+
+            <div className="mt-8 text-center md:hidden">
+              <Link href="/products">
+                <Button variant="outline" className="items-center gap-2">
+                  View All <ArrowRight className="h-4 w-4" />
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        {/* Featured Products */}
+        <section className="py-20 bg-muted/30">
+          <div className="container mx-auto px-4">
+            <div className="flex justify-between items-end mb-12">
+              <div>
+                <h2 className="text-4xl font-bold mb-4">Trending Now</h2>
+                <p className="text-xl text-muted-foreground">
+                  Our most popular products this season
+                </p>
+              </div>
+              <Link href="/products">
+                <Button variant="outline" className="hidden md:flex items-center gap-2">
+                  View All <ArrowRight className="h-4 w-4" />
+                </Button>
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+              {featuredProducts.map((product) => (
+                <Link key={product.id} href={`/product/${product.id}`}>
+                  <Card className="overflow-hidden group cursor-pointer hover:shadow-xl transition-all duration-300">
+                    <div className="relative h-[250px] md:h-[350px]">
+                      <Image
+                        src={product.image}
+                        alt={product.name}
+                        fill
+                        className="object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                      {product.tag && (
+                        <div className="absolute top-2 left-2 md:top-4 md:left-4 px-2 py-1 md:px-3 md:py-1 bg-primary text-primary-foreground text-xs md:text-sm font-medium rounded-full">
+                          {product.tag}
+                        </div>
+                      )}
+                    </div>
+                    <CardContent className="p-3 md:p-4">
+                      <h3 className="font-semibold mb-2 text-sm md:text-base">{product.name}</h3>
+                      <div className="flex items-center gap-2">
+                        <span className="text-base md:text-lg font-bold">${product.price}</span>
+                        {product.originalPrice && (
+                          <span className="text-xs md:text-sm text-muted-foreground line-through">
+                            ${product.originalPrice}
+                          </span>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              ))}
+            </div>
+
+            <div className="mt-8 text-center md:hidden">
+              <Link href="/products">
+                <Button variant="outline" className="items-center gap-2">
+                  View All <ArrowRight className="h-4 w-4" />
+                </Button>
+              </Link>
+            </div>
+          </div>
+        </section>
+
+        {/* CTA Banner */}
+        <section className="py-20 bg-gradient-to-r from-primary to-secondary text-white">
+          <div className="container mx-auto px-4 text-center">
+            <h2 className="text-4xl font-bold mb-4">Join the Raawr Community</h2>
+            <p className="text-xl mb-8 opacity-90">
+              Get 15% off your first order when you sign up
+            </p>
+            <Button size="lg" variant="secondary" className="bg-white text-primary hover:bg-white/90">
+              Sign Up Now
+            </Button>
+          </div>
+        </section>
+      </main>
+
+      <Footer />
+    </div>
+  )
+}
