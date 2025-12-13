@@ -1,10 +1,11 @@
 "use client"
 
-import { AuthUser } from "@/lib/types"
+
 import { memo } from "react"
+import { IUser } from "@/types/api"
 
 interface Props {
-  user: AuthUser
+  user: IUser
   onLogout: () => void
 }
 

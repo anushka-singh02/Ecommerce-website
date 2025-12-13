@@ -3,10 +3,10 @@ import { publicApi } from "@/lib/axios-public"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { loginSchema } from "@/lib/validators/login"
-import { api } from "@/lib/axios"
 import { useRouter } from "next/navigation"
 import toast from "react-hot-toast"
 import Link from "next/link"
+import { authService } from '@/lib/api/auth';
 
 export default function LoginPage() {
   const router = useRouter()
@@ -16,9 +16,17 @@ export default function LoginPage() {
 
   async function onSubmit(data: any) {
     try {
-      await publicApi.post("/auth/login", data)
+      
+      const response = await authService.login(data)
+      console.log("Full Response:", response) 
+      router.refresh()
+      
+      if(response.role == 'ADMIN')
+      router.replace("/admin/dashboard")
+    else
       router.replace("/")
-    } catch {
+    } catch(error) {
+      console.error("LOGIN FAILED ON FRONTEND:", error)
       toast.error("Invalid email or password")
     }
   }

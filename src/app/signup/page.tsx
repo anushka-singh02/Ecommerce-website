@@ -3,7 +3,7 @@
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { signupSchema } from "@/lib/validators/signup"
-import { api } from "@/lib/axios"
+// import { api } from "@/lib/axios"
 import { useRouter } from "next/navigation"
 import toast from "react-hot-toast"
 import Link from "next/link"
@@ -31,12 +31,9 @@ export default function SignupPage() {
     <div className="min-h-screen flex items-center justify-center px-4 bg-white">
       <div className="w-full max-w-md">
         {/* Brand */}
-        <Image
-          src="/logo.jpg"
-          alt="raawr logo"
-          
-            width={150}
-        />
+        <h1 className="text-3xl font-bold text-center mb-8 tracking-wide">
+          raawr
+        </h1>
 
         {/* Card */}
         <div className="border rounded-xl p-6 sm:p-8 shadow-sm">
