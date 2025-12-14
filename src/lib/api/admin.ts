@@ -1,18 +1,18 @@
 import { fetcher } from '@/lib/fetcher';
 // You might want to move these types to types/api.ts later
-import { ApiResponse, IProduct, IUser } from '@/types/api';
+import { ApiResponse, IProduct, IUser , DashboardStats } from '@/types/api';
 
 export const adminService = {
   // --- DASHBOARD & METRICS ---
 
   // GET /dashboard
   getDashboardStats: async () => {
-    return fetcher<ApiResponse<any>>('/admin/dashboard');
+    return fetcher<DashboardStats>('/admin/dashboard');
   },
 
   // GET /metrics?range=30d
   getMetrics: async (range: string = '30d') => {
-    return fetcher<ApiResponse<any>>(`/admin/metrics?range=${range}`);
+    return fetcher<any>(`/admin/metrics?range=${range}`);
   },
 
   // --- PRODUCTS ---
@@ -66,6 +66,10 @@ export const adminService = {
     if (params?.page) query.append('page', params.page.toString());
 
     return fetcher<ApiResponse<any[]>>(`/admin/orders?${query.toString()}`);
+  },
+
+  getOrderById: async (id: string) => {
+    return fetcher<any>(`/admin/orders/${id}`);
   },
 
   // PUT /orders/:id/status

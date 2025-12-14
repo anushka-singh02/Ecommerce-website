@@ -4,39 +4,11 @@ import { useQuery } from "@tanstack/react-query"
 import { adminService } from "@/lib/api/admin"
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts"
 
-// --- DUMMY DATA START ---
-const DUMMY_STATS = {
-  data: {
-    revenue: 45231.89,
-    totalOrders: 1250,
-    lowStockCount: 14,
-  }
-};
-
-const DUMMY_METRICS = {
-  data: {
-    data: [
-      // Simulating raw orders over a few days
-      { createdAt: "2025-12-08T10:00:00Z", total: 120 },
-      { createdAt: "2025-12-08T14:00:00Z", total: 80 },
-      { createdAt: "2025-12-09T09:00:00Z", total: 400 },
-      { createdAt: "2025-12-10T11:00:00Z", total: 150 },
-      { createdAt: "2025-12-11T16:00:00Z", total: 800 },
-      { createdAt: "2025-12-12T10:30:00Z", total: 450 },
-      { createdAt: "2025-12-12T12:00:00Z", total: 200 },
-      { createdAt: "2025-12-13T09:15:00Z", total: 600 },
-      { createdAt: "2025-12-14T14:20:00Z", total: 950 },
-    ]
-  }
-};
-// --- DUMMY DATA END ---
-
-// Helper to make the chart data look like what Recharts expects
+// Helper to format chart data
 const processChartData = (data: any[]) => {
-  if (!data) return [];
+  if (!data || !Array.isArray(data)) return []; // Safety check
   
   const grouped = data.reduce((acc: any, order: any) => {
-    // Note: Ensure your local environment matches the date format logic
     const date = new Date(order.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" });
     acc[date] = (acc[date] || 0) + (order.total || 0);
     return acc;
@@ -46,39 +18,43 @@ const processChartData = (data: any[]) => {
 };
 
 export default function Dashboard() {
-  // 1. Commented out real hooks for testing
-  
-  // const { data: statsData } = useQuery({
-  //   queryKey: ["dashboard-stats"],
-  //   queryFn: () => adminService.getDashboardStats(),
-  // })
+  // 1. Fetch Real Data
+  const { data: statsData, isLoading: statsLoading } = useQuery({
+    queryKey: ["dashboard-stats"],
+    queryFn: () => adminService.getDashboardStats(),
+  })
 
-  // const { data: metricsData } = useQuery({
-  //   queryKey: ["dashboard-metrics"],
-  //   queryFn: () => adminService.getMetrics("30d"),
-  // })
-  
+  const { data: metricsData, isLoading: metricsLoading } = useQuery({
+    queryKey: ["dashboard-metrics"],
+    queryFn: () => adminService.getMetrics("30d"),
+  })
 
-  // 2. Assign Dummy Data
-  const statsData = DUMMY_STATS;
-  const metricsData = DUMMY_METRICS;
-
-  // Prepare the data to match your UI's expected format
-  const stats = statsData?.data ? {
+  // 2. Prepare Data (Adjusted for API Structure)
+  const stats = statsData ? {
     cards: {
-      "Total Revenue": `$${statsData.data.revenue.toLocaleString()}`, // Added formatting for nicer look
-      "Total Orders": statsData.data.totalOrders,
-      "Low Stock Items": statsData.data.lowStockCount,
+      // FIX 1: Removed '.data' - backend returns 'revenue' directly
+      "Total Revenue": `$${(statsData.revenue || 0).toLocaleString('en-US', { 
+          minimumFractionDigits: 2, 
+          maximumFractionDigits: 2 
+      })}`,
+      "Total Orders": statsData.totalOrders || 0,
+      "Low Stock Items": statsData.lowStockCount || 0,
     },
-    sales: processChartData(metricsData?.data?.data || [])
+    // FIX 2: metricsData comes as { range: "30d", data: [...] }
+    // So we access metricsData.data, not metricsData.data.data
+    sales: processChartData(metricsData?.data || []) 
   } : null;
+
+  if (statsLoading || metricsLoading) {
+    return <div className="p-12 text-center text-gray-500">Loading dashboard...</div>;
+  }
 
   return (
     <div>
       <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
 
       {/* Dynamic Cards Loop */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8"> {/* Added responsive grid-cols-1 */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
         {stats && Object.entries(stats.cards).map(([k, v]: any) => (
           <div key={k} className="bg-white p-4 rounded shadow border border-gray-100">
             <p className="text-sm text-gray-500 uppercase tracking-wide">{k}</p>
@@ -90,38 +66,47 @@ export default function Dashboard() {
       {/* Chart Section */}
       <div className="bg-white p-6 rounded shadow border border-gray-100">
         <h3 className="text-lg font-semibold mb-6">Revenue Overview</h3>
-        <div style={{ width: '100%', height: 350 }}>
-          <ResponsiveContainer>
-            <LineChart data={stats?.sales}>
-              <XAxis 
-                dataKey="date" 
-                stroke="#888888" 
-                fontSize={12} 
-                tickLine={false} 
-                axisLine={false} 
-                dy={10} // Moves text down slightly
-              />
-              <YAxis 
-                stroke="#888888" 
-                fontSize={12} 
-                tickLine={false} 
-                axisLine={false} 
-                tickFormatter={(value) => `$${value}`} 
-              />
-              <Tooltip 
-                contentStyle={{ borderRadius: "8px", border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}
-              />
-              <Line 
-                type="monotone" 
-                dataKey="revenue" 
-                stroke="#2563eb" // Changed to a nice blue
-                strokeWidth={3} 
-                dot={{ r: 4, fill: "#2563eb" }} // Added dots for better visibility
-                activeDot={{ r: 6 }} 
-              />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
+        
+        {/* Check if we actually have sales data */}
+        {stats?.sales && stats.sales.length > 0 ? (
+          <div style={{ width: '100%', height: 350 }}>
+            <ResponsiveContainer>
+              <LineChart data={stats.sales}>
+                <XAxis 
+                  dataKey="date" 
+                  stroke="#888888" 
+                  fontSize={12} 
+                  tickLine={false} 
+                  axisLine={false} 
+                  dy={10} 
+                />
+                <YAxis 
+                  stroke="#888888" 
+                  fontSize={12} 
+                  tickLine={false} 
+                  axisLine={false} 
+                  tickFormatter={(value) => `$${value}`} 
+                />
+                <Tooltip 
+                  contentStyle={{ borderRadius: "8px", border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}
+                  formatter={(value: any) => [`$${value}`, "Revenue"]}
+                />
+                <Line 
+                  type="monotone" 
+                  dataKey="revenue" 
+                  stroke="#2563eb" 
+                  strokeWidth={3} 
+                  dot={{ r: 4, fill: "#2563eb" }} 
+                  activeDot={{ r: 6 }} 
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        ) : (
+          <div className="h-64 flex items-center justify-center text-gray-400 bg-gray-50 rounded">
+            No revenue data available for this period.
+          </div>
+        )}
       </div>
     </div>
   )
