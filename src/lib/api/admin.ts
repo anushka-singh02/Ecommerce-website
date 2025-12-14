@@ -4,7 +4,7 @@ import { ApiResponse, IProduct, IUser } from '@/types/api';
 
 export const adminService = {
   // --- DASHBOARD & METRICS ---
-  
+
   // GET /dashboard
   getDashboardStats: async () => {
     return fetcher<ApiResponse<any>>('/admin/dashboard');
@@ -25,7 +25,7 @@ export const adminService = {
 
 
   getProductById: async (id: string) => {
-    return fetcher<ApiResponse<IProduct>>(`/admin/products/${id}`); // Adjust URL if needed
+    return fetcher<ApiResponse<IProduct>>(`/products/${id}`); // Adjust URL if needed
   },
   // POST /products
   createProduct: async (productData: any) => {
@@ -51,11 +51,10 @@ export const adminService = {
   },
 
   uploadImage: async (formData: FormData) => {
-    // Note: Fetcher might need adjustment for FormData, or use axios for file uploads specifically
-    // keeping axios here is often safer for Multipart/Form-Data if fetcher assumes JSON
-    const { api } = require("@/lib/axios"); 
-    const res = await api.post("/products/upload", formData);
-    return res.data;
+    return fetcher<{ url: string }>("/admin/products/upload", {
+      method: "POST",
+      body: formData,
+    });
   },
 
   // --- ORDERS ---
@@ -125,7 +124,7 @@ export const adminService = {
 
     // Convert response to Blob (File)
     const blob = await res.blob();
-    
+
     // Create a hidden link to trigger download
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');

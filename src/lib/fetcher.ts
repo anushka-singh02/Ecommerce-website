@@ -1,15 +1,22 @@
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
 
-
 let isRefreshing = false;
 
 export async function fetcher<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-  // 1. Prepare Headers (Attach Access Token)
+  // 1. Prepare Headers
   const getHeaders = () => {
     const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      ...(options.headers as Record<string, string>),
+      ...(options.headers as Record<string, string>), // Start with any custom headers passed in
     };
+
+    // --- FIX START ---
+    // If the body is FormData (File Upload), DO NOT set Content-Type.
+    // The browser will automatically set it to 'multipart/form-data; boundary=...'
+    if (!(options.body instanceof FormData)) {
+      headers['Content-Type'] = 'application/json';
+    }
+    // --- FIX END ---
+    
     if (typeof window !== 'undefined') {
       const token = localStorage.getItem('accessToken');
       if (token) headers['Authorization'] = `Bearer ${token}`;
@@ -18,7 +25,6 @@ export async function fetcher<T>(endpoint: string, options: RequestInit = {}): P
   };
 
   // 2. Initial Request
-  // We use credentials: 'include' to ensure cookies are sent if needed
   let res = await fetch(`${BASE_URL}${endpoint}`, {
     ...options,
     headers: getHeaders(),
@@ -30,18 +36,16 @@ export async function fetcher<T>(endpoint: string, options: RequestInit = {}): P
     isRefreshing = true;
 
     try {
-      // REFRESH STEP: 
-      // We don't send body. We rely on the Browser sending the Cookie.
       const refreshRes = await fetch(`${BASE_URL}/auth/refresh`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        credentials: 'include', // <--- CRITICAL: Sends the HttpOnly Cookie
+        credentials: 'include',
       });
 
       if (refreshRes.ok) {
         const data = await refreshRes.json();
         
-        // Backend should return the NEW Access Token directly or in data
+        // Handle different response structures
         const newAccessToken = data.accessToken || data.data?.accessToken;
         
         if (newAccessToken) {
@@ -51,7 +55,7 @@ export async function fetcher<T>(endpoint: string, options: RequestInit = {}): P
            // RETRY Original Request
            res = await fetch(`${BASE_URL}${endpoint}`, {
              ...options,
-             headers: getHeaders(), // Pick up the new token
+             headers: getHeaders(), // This will re-run logic and keep FormData correct
              credentials: 'include',
            });
         }
@@ -60,7 +64,6 @@ export async function fetcher<T>(endpoint: string, options: RequestInit = {}): P
       }
     } catch (error) {
       isRefreshing = false;
-      // Logout if refresh fails
       if (typeof window !== 'undefined') {
         localStorage.removeItem('accessToken');
         window.location.href = '/login';
@@ -70,7 +73,7 @@ export async function fetcher<T>(endpoint: string, options: RequestInit = {}): P
 
   // 4. Final Error Handling
   if (!res.ok) {
-    const errorData = await res.json();
+    const errorData = await res.json().catch(() => ({})); // Prevent crash if no json
     throw new Error(errorData.message || `API Error: ${res.statusText}`);
   }
 
