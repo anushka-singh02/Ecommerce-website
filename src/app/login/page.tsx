@@ -1,5 +1,4 @@
 "use client"
-import { publicApi } from "@/lib/axios-public"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { loginSchema } from "@/lib/validators/login"
@@ -7,25 +6,55 @@ import { useRouter } from "next/navigation"
 import toast from "react-hot-toast"
 import Link from "next/link"
 import { authService } from '@/lib/api/auth';
+// 1. Import the store
+import { useAuthStore } from "@/store/useAuthStore"
 
 export default function LoginPage() {
   const router = useRouter()
+  // 2. Get the login action from the store
+  const login = useAuthStore((state) => state.login)
+
   const form = useForm({
     resolver: zodResolver(loginSchema),
   })
 
   async function onSubmit(data: any) {
     try {
-      
       const response = await authService.login(data)
-      console.log("Full Response:", response) 
-      router.refresh()
-      
-      if(response.role == 'ADMIN')
-      router.replace("/admin/dashboard")
-    else
-      router.replace("/")
-    } catch(error) {
+      console.log("Full Response:", response)
+
+      // --- START: STATE UPDATE ---
+      // We assume your API returns something like:
+      // { user: { id: 1, name: "..." }, accessToken: "ey..." }
+      // OR a flat object: { id: 1, role: "ADMIN", accessToken: "ey..." }
+
+      // Adjust these lines to match your exact API structure:
+      const user = response.user || response;
+      const token = response.accessToken || response.token;
+
+      if (!token) {
+        throw new Error("No access token received");
+      }
+
+      // Update Zustand + LocalStorage
+      if (token) {
+        login(user, token); // This saves to localStorage
+      } else {
+        console.error("NO TOKEN FOUND IN RESPONSE", response);
+      }
+      // --- END: STATE UPDATE ---
+
+      toast.success("Welcome back!");
+      router.refresh(); // Refresh to ensure layout updates
+
+      // Use the user object we just extracted for the role check
+      if (user.role === 'ADMIN') {
+        router.replace("/admin/dashboard");
+      } else {
+        router.replace("/");
+      }
+
+    } catch (error) {
       console.error("LOGIN FAILED ON FRONTEND:", error)
       toast.error("Invalid email or password")
     }

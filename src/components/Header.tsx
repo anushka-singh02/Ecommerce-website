@@ -3,31 +3,48 @@
 import { useState } from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { ShoppingCart, Search, Menu, X, User } from "lucide-react"
+import { useRouter } from "next/navigation" // Added for search navigation
+import { ShoppingCart, Search, Menu, User } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import { CartSidebar } from "@/components/CartSidebar"
+// 1. Import your auth store
+import { useAuthStore } from "@/store/useAuthStore"
 
 export function Header() {
+  const router = useRouter()
+  // 2. Get auth state
+  const { isAuthenticated, user } = useAuthStore()
+  
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
   const [cartOpen, setCartOpen] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
+
+  // Mock cart count (You can replace this later with a real cart store)
   const [cartCount, setCartCount] = useState(2)
 
   const categories = [
-    { name: "New Arrivals", href: "/products?category=new" },
-    { name: "Men", href: "/products?gender=men" },
-    { name: "Women", href: "/products?gender=women" },
+    { name: "New Arrivals", href: "/products?sort=newest" },
+    { name: "Men", href: "/products?gender=Men" },
+    { name: "Women", href: "/products?gender=Women" },
     { name: "Collections", href: "/products" },
-    { name: "Sale", href: "/products?sale=true" },
+    { name: "Sale", href: "/products?sort=price-low" }, // Adjusted query params to match API
   ]
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (searchQuery.trim()) {
+      router.push(`/products?search=${encodeURIComponent(searchQuery)}`)
+    }
+  }
 
   return (
     <>
       <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4">
-          {/* Main Header */}
           <div className="flex h-16 items-center justify-between">
+            
             {/* Mobile Menu */}
             <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
               <SheetTrigger asChild className="lg:hidden">
@@ -93,45 +110,56 @@ export function Header() {
 
             {/* Right Actions */}
             <div className="flex items-center space-x-4">
-              {/* Search */}
-              <div className="hidden md:flex items-center">
+              
+              {/* Search Form */}
+              <form onSubmit={handleSearch} className="hidden md:flex items-center">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     type="search"
                     placeholder="Search products..."
                     className="pl-9 w-[200px] lg:w-[300px]"
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
                   />
                 </div>
-              </div>
+              </form>
 
-              
-              
-              {/* Account */}
-              <Button variant="ghost" size="icon">
-                <User className="h-5 w-5" />
-              </Button>
+              {/* Account Icon Logic */}
+              <Link href={isAuthenticated ? "/profile" : "/login"}>
+                <Button variant="ghost" size="icon" title={isAuthenticated ? "My Profile" : "Login"}>
+                  <User className="h-5 w-5" />
+                  {/* Optional: Show small indicator if logged in */}
+                  {isAuthenticated && <span className="sr-only">Profile (Logged In)</span>}
+                </Button>
+              </Link>
 
-              {/* Cart */}
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                className="relative"
-                onClick={() => setCartOpen(true)}
-              >
-                <ShoppingCart className="h-5 w-5" />
-                {cartCount > 0 && (
-                  <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center">
-                    {cartCount}
-                  </span>
-                )}
-              </Button>
+              {/* Cart Icon - ONLY SHOW IF LOGGED IN */}
+              {isAuthenticated && (
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="relative"
+                  onClick={() => setCartOpen(true)}
+                >
+                  <ShoppingCart className="h-5 w-5" />
+                  {cartCount > 0 && (
+                    <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-primary text-primary-foreground text-xs flex items-center justify-center">
+                      {cartCount}
+                    </span>
+                  )}
+                </Button>
+              )}
+              
             </div>
           </div>
         </div>
       </header>
 
-      <CartSidebar open={cartOpen} onClose={() => setCartOpen(false)} />
+      {/* Only render sidebar if auth (extra safety) */}
+      {isAuthenticated && (
+        <CartSidebar open={cartOpen} onClose={() => setCartOpen(false)} />
+      )}
     </>
   )
 }
