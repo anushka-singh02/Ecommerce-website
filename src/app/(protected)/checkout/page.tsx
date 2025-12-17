@@ -11,7 +11,9 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { ShoppingBag, Lock, CreditCard, Smartphone, Wallet } from "lucide-react"
-// import { CheckoutFormData, RazorpayPaymentResponse, PaymentVerification } from "@/lib/razorpay.types"
+import { createRazorpayOrder, verifyRazorpayPayment } from "@/lib/payment"
+import { RazorpayPaymentResponse } from "@/lib/razorpay.types"
+
 import { toast } from "sonner"
 
 interface CartItem {
@@ -106,126 +108,68 @@ export default function CheckoutPage() {
   }
 
   const handlePayment = async () => {
-    if (!validateForm()) return
+    console.log("🔥 Complete Payment clicked");
 
-    try {
-      setLoading(true)
+  // if (!validateForm()) return
 
-      // Create Razorpay order
-      const receipt = `order_${Date.now()}`
-      const amountInPaise = total * 100
+  try {
+    setLoading(true)
 
-      const orderResponse = await fetch("/api/razorpay/order", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          amount: amountInPaise,
-          currency: "INR",
-          receipt,
-          notes: {
-            customerName: `${formData.firstName} ${formData.lastName}`,
-            customerEmail: formData.email,
-            customerPhone: formData.phone,
-          },
-        }),
-      })
+    const amountInPaise = total * 100
 
-      if (!orderResponse.ok) {
-        throw new Error("Failed to create order")
-      }
+    // 1️⃣ Create order from backend
+    const order = await createRazorpayOrder(amountInPaise)
+    console.log("✅ Razorpay order:", order);
 
-      const orderData = await orderResponse.json()
+    // 2️⃣ Razorpay options
+    const options = {
+      key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,
+      amount: amountInPaise,
+      currency: "INR",
+      name: "Raawr",
+      description: "Order Payment",
+      order_id: order.id,
 
-      // Load Razorpay script
-      const script = document.createElement("script")
-      script.src = "https://checkout.razorpay.com/v1/checkout.js"
-      script.async = true
+      prefill: {
+        name: `${formData.firstName} ${formData.lastName}`,
+        email: formData.email,
+        contact: formData.phone,
+      },
 
-      script.onload = () => {
-        const razorpayKeyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID
+      theme: {
+        color: "#000000",
+      },
 
-        if (!razorpayKeyId) {
-          toast.error("Payment configuration error")
+      handler: async (response: RazorpayPaymentResponse) => {
+        try {
+          await verifyRazorpayPayment(response)
+          toast.success("Payment successful!")
+          router.push(`/payment-success?payment_id=${response.razorpay_payment_id}`)
+        } catch {
+          toast.error("Payment verification failed")
+        }
+      },
+
+      modal: {
+        ondismiss: () => {
+          toast.info("Payment cancelled")
           setLoading(false)
-          return
-        }
-
-        const options = {
-          key: razorpayKeyId,
-          order_id: orderData.orderId,
-          amount: amountInPaise,
-          currency: "INR",
-          name: "Raawr",
-          description: "Order Payment",
-          image: "/logo.png",
-          prefill: {
-            name: `${formData.firstName} ${formData.lastName}`,
-            email: formData.email,
-            contact: formData.phone,
-          },
-          theme: {
-            color: "#000000",
-          },
-          method: {
-            upi: true,
-            card: true,
-            netbanking: true,
-            wallet: true,
-          },
-          handler: async (response: RazorpayPaymentResponse) => {
-            try {
-              // Verify payment on server
-              const verifyResponse = await fetch("/api/razorpay/verify", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  payment_id: response.razorpay_payment_id,
-                  order_id: response.razorpay_order_id,
-                  signature: response.razorpay_signature,
-                }),
-              })
-
-              if (!verifyResponse.ok) {
-                throw new Error("Payment verification failed")
-              }
-
-              const verification: PaymentVerification = await verifyResponse.json()
-
-              if (verification.isValid) {
-                toast.success("Payment successful!")
-                router.push(`/payment-success?payment_id=${response.razorpay_payment_id}`)
-              } else {
-                throw new Error("Invalid payment signature")
-              }
-            } catch (error) {
-              console.error("Verification error:", error)
-              toast.error("Payment verification failed. Please contact support.")
-            }
-          },
-          modal: {
-            ondismiss: () => {
-              setLoading(false)
-              toast.info("Payment cancelled")
-            },
-          },
-        }
-
-        const checkout = new (window as any).Razorpay(options)
-        checkout.open()
-      }
-
-      script.onerror = () => {
-        toast.error("Failed to load payment gateway")
-        setLoading(false)
-      }
-
-      document.body.appendChild(script)
-    } catch (error) {
-      console.error("Payment error:", error)
-      toast.error("Payment failed. Please try again.")
-      setLoading(false)
+        },
+      },
     }
+    console.log("window.Razorpay =", window.Razorpay);
+
+
+    // 3️⃣ Open Razorpay modal
+    const razorpay = new (window as any).Razorpay(options)
+    razorpay.open()
+  } catch (err) {
+    console.error(err)
+    toast.error("Payment failed. Please try again.")
+  } finally {
+    setLoading(false)
   }
+}
 
   return (
     <div className="min-h-screen flex flex-col">
