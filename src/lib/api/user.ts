@@ -41,9 +41,4 @@ export const userService = {
       method: 'DELETE',
     });
   },
-
-getProfile: async () => {
-    return fetcher<ApiResponse<IUser>>('/admin/me'); // Auto-attaches token
-  },
-
-};
+}

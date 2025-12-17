@@ -1,34 +1,45 @@
 "use client"
 
-
-import { api } from "@/lib/axios"
+import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { AdminSidebar } from "@/components/admin/AdminSidebar"
 import { AdminHeader } from "@/components/admin/AdminHeader"
 import { Spinner } from "@/components/admin/Spinner"
-import { useAuth } from "@/hooks/useAuth"
-import { authService } from "@/lib/api/auth"
+import { useAuthStore } from "@/store/useAuthStore" // ✅ Switch to Store
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
-  const { data, isLoading } = useAuth()
+  // Use the store for checking auth status
+  const { user, isAuthenticated, isLoading } = useAuthStore()
   const router = useRouter()
 
-  const handleLogout = () => {
+  // 1. Protection Check
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      router.replace("/login")
+    }
+  }, [isLoading, isAuthenticated, router])
 
-    authService.logout()
+  // 2. Loading State
+  if (isLoading) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-gray-100">
+        <Spinner />
+      </div>
+    )
   }
 
-
-
-  if (isLoading) return <Spinner />
-  if (!data) return null
+  // 3. Prevent flash of protected content
+  if (!isAuthenticated) return null
 
   return (
     <div className="min-h-screen flex bg-gray-100">
       <AdminSidebar />
-      <div className="flex-1">
-        <AdminHeader user={data} onLogout={handleLogout} />
-        <main className="p-6">{children}</main>
+      <div className="flex-1 flex flex-col min-h-screen">
+        {/* ✅ No props needed anymore! */}
+        <AdminHeader /> 
+        <main className="flex-1 p-6 overflow-auto">
+          {children}
+        </main>
       </div>
     </div>
   )

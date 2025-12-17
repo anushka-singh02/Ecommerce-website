@@ -248,7 +248,7 @@ export default function Home() {
                   <p className="text-xl mb-8 opacity-90">
                     Get 15% off your first order when you sign up
                   </p>
-                  <Link href="/auth/register">
+                  <Link href="/signup">
                     <Button size="lg" variant="secondary" className="bg-white text-primary hover:bg-white/90">
                       Sign Up Now
                     </Button>

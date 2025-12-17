@@ -1,8 +1,9 @@
-'use client'; // Must be client-side to check localStorage
+'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { authService } from '@/lib/api/auth';
+import { useAuthStore } from '@/store/useAuthStore'; // ✅ Use the store
+import { Loader2 } from 'lucide-react'; // Optional: Use your icon
 
 export default function ProtectedLayout({
   children,
@@ -10,29 +11,31 @@ export default function ProtectedLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  
+  // ✅ Get state directly from the store
+  const { isAuthenticated, isLoading } = useAuthStore();
 
   useEffect(() => {
-    // 1. Check if user is logged in
-    if (!authService.isAuthenticated()) {
-      // 2. Redirect if not
-      router.push('/login');
-    } else {
-      // 3. Allow access
-      setIsAuthenticated(true);
+    // Only redirect once loading is finished and we know they aren't logged in
+    if (!isLoading && !isAuthenticated) {
+      router.replace('/login');
     }
-  }, [router]);
+  }, [isLoading, isAuthenticated, router]);
 
-  // While checking, show a loading spinner or nothing
-  // This prevents the "flash" of protected content
-  if (!isAuthenticated) {
+  // 1. Show loading while the store is hydrating/checking token
+  if (isLoading) {
     return (
-      <div className="flex h-screen items-center justify-center">
-        <p>Loading...</p> 
+      <div className="flex h-screen w-full items-center justify-center bg-white">
+        <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
       </div>
     );
   }
 
-  // Once authenticated, render the page requested (Dashboard, Profile, etc.)
+  // 2. If finished loading and still not authenticated, don't render children (redirect happens above)
+  if (!isAuthenticated) {
+    return null;
+  }
+
+  // 3. Render protected content
   return <>{children}</>;
 }

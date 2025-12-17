@@ -11,7 +11,7 @@ interface AuthResponse {
 export const authService = {
   // Register
   register: async (data: any) => {
-    return fetcher<ApiResponse<IUser>>('/register', {
+    return fetcher<ApiResponse<any>>('/auth/register', {
       method: 'POST',
       body: JSON.stringify(data),
     });
@@ -52,10 +52,10 @@ export const authService = {
     }
   },
 
-  isAuthenticated: () => {
-    if (typeof window !== 'undefined') {
-      return !!localStorage.getItem('accessToken');
-    }
-    return false;
-  }
+  // isAuthenticated: () => {
+  //   if (typeof window !== 'undefined') {
+  //     return !!localStorage.getItem('accessToken');
+  //   }
+  //   return false;
+  // }
 };
