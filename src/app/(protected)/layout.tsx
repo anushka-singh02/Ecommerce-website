@@ -13,7 +13,7 @@ export default function ProtectedLayout({
   const router = useRouter();
   
   // ✅ Get state directly from the store
-  const { isAuthenticated, isLoading } = useAuthStore();
+  const { isAuthenticated, user, isLoading } = useAuthStore();
 
   useEffect(() => {
     // Only redirect once loading is finished and we know they aren't logged in
@@ -36,6 +36,6 @@ export default function ProtectedLayout({
     return null;
   }
 
-  // 3. Render protected content
+  
   return <>{children}</>;
 }
