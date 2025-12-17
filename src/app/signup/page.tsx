@@ -12,7 +12,7 @@ import { authService } from "@/lib/api/auth"
 export default function SignupPage() {
   const router = useRouter()
   const { login } = useAuthStore()
-  
+
   const form = useForm({
     resolver: zodResolver(signupSchema),
     defaultValues: {
@@ -24,34 +24,30 @@ export default function SignupPage() {
 
   async function onSubmit(data: any) {
     try {
+      // 1. Register User
       const response = await authService.register(data)
-      const { user, accessToken } = response.data;
-      
-      if (user && accessToken) {
-        login(user, accessToken)
-        toast.success("Account created successfully")
-        router.replace("/profile")
-      } else {
-        router.replace("/login")
-      }
+
+      // ✅ 2. Show Success Message (Hard Verification)
+      // The backend returns: { message: "Registration successful! Please check your email...", success: true }
+
+      toast.success("Account created! Please verify your email to login.", {
+        duration: 5000, // Show longer so they read it
+      });
+
+      // 3. Redirect to Login (So they can login AFTER verifying)
+      router.replace("/login");
 
     } catch (error: any) {
-      console.error(error)
-      const msg = error.message || "Something went wrong"
+      console.error("SIGNUP ERROR:", error)
+      const msg = error.response?.data?.message || error.message || "Something went wrong";
 
-      
       if (msg.toLowerCase().includes("exists")) {
-        // Show error on specific fields instead of just a toast
-        form.setError("email", { 
-          type: "manual", 
-          message: "Email is already taken." 
+        form.setError("email", {
+          type: "manual",
+          message: "Email is already registered."
         })
-  
-        
-        
-        toast.error("Account already exists. Try logging in.")
+        toast.error("Account already exists.")
       } else {
-        // Generic error
         toast.error(msg)
       }
     }
@@ -71,31 +67,29 @@ export default function SignupPage() {
           </p>
 
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            
+
             {/* Full Name */}
             <div>
               <input
                 {...form.register("name")}
                 placeholder="Full name"
-                className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-black ${
-                  form.formState.errors.name ? "border-red-500 focus:ring-red-200" : ""
-                }`}
+                className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-black ${form.formState.errors.name ? "border-red-500 focus:ring-red-200" : ""
+                  }`}
               />
               {form.formState.errors.name && (
                 <p className="text-xs text-red-500 mt-1">{form.formState.errors.name.message as string}</p>
               )}
             </div>
 
-       
+
 
             {/* Email */}
             <div>
               <input
                 {...form.register("email")}
                 placeholder="Email address"
-                className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-black ${
-                  form.formState.errors.email ? "border-red-500 focus:ring-red-200" : ""
-                }`}
+                className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-black ${form.formState.errors.email ? "border-red-500 focus:ring-red-200" : ""
+                  }`}
               />
               {form.formState.errors.email && (
                 <p className="text-xs text-red-500 mt-1">{form.formState.errors.email.message as string}</p>
@@ -108,11 +102,10 @@ export default function SignupPage() {
                 {...form.register("password")}
                 type="password"
                 placeholder="Password"
-                className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-black ${
-                  form.formState.errors.password ? "border-red-500 focus:ring-red-200" : ""
-                }`}
+                className={`w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-black ${form.formState.errors.password ? "border-red-500 focus:ring-red-200" : ""
+                  }`}
               />
-               {form.formState.errors.password && (
+              {form.formState.errors.password && (
                 <p className="text-xs text-red-500 mt-1">{form.formState.errors.password.message as string}</p>
               )}
             </div>

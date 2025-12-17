@@ -18,45 +18,37 @@ export default function LoginPage() {
     resolver: zodResolver(loginSchema),
   })
 
-  async function onSubmit(data: any) {
+async function onSubmit(data: any) {
     try {
       const response = await authService.login(data)
-      console.log("Full Response:", response)
-
-      // --- START: STATE UPDATE ---
-      // We assume your API returns something like:
-      // { user: { id: 1, name: "..." }, accessToken: "ey..." }
-      // OR a flat object: { id: 1, role: "ADMIN", accessToken: "ey..." }
-
-      // Adjust these lines to match your exact API structure:
+      
       const user = response.user || response;
       const token = response.accessToken || response.token;
 
-      if (!token) {
-        throw new Error("No access token received");
-      }
+      if (!token) throw new Error("No access token received");
 
-      // Update Zustand + LocalStorage
-      if (token) {
-        login(user, token); // This saves to localStorage
-      } else {
-        console.error("NO TOKEN FOUND IN RESPONSE", response);
-      }
-      // --- END: STATE UPDATE ---
-
+      login(user, token);
       toast.success("Welcome back!");
-      router.refresh(); // Refresh to ensure layout updates
+      router.refresh();
 
-      // Use the user object we just extracted for the role check
       if (user.role === 'ADMIN') {
         router.replace("/admin/dashboard");
       } else {
         router.replace("/");
       }
 
-    } catch (error) {
-      console.error("LOGIN FAILED ON FRONTEND:", error)
-      toast.error("Invalid email or password")
+    } catch (error: any) {
+      console.error("LOGIN ERROR:", error)
+
+      
+      const serverMessage = error.message;
+
+      if (serverMessage) {
+        toast.error(serverMessage);
+      } else {
+        
+        toast.error("Invalid email or password");
+      }
     }
   }
 
