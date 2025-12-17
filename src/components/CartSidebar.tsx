@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Image from "next/image"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -8,10 +8,14 @@ import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sh
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Separator } from "@/components/ui/separator"
-import { X, Plus, Minus, ShoppingBag, Sparkles, Truck, Shield } from "lucide-react"
+import { X, Plus, Minus, ShoppingBag, Sparkles, Truck, Shield, Loader2 } from "lucide-react"
+import { userService } from "@/lib/api/user"
+import toast from "react-hot-toast"
 
+// Updated to match your Backend Data Shape
 interface CartItem {
-  id: number
+  id: string       // CartItem ID (for removal)
+  productId: string // Product ID (for updates)
   name: string
   price: number
   image: string
@@ -27,40 +31,92 @@ interface CartSidebarProps {
 
 export function CartSidebar({ open, onClose }: CartSidebarProps) {
   const router = useRouter()
-  // Mock cart items
-  const [cartItems, setCartItems] = useState<CartItem[]>([
-    {
-      id: 1,
-      name: "Flex Performance Tee",
-      price: 35,
-      image: "https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?w=200&q=80",
-      size: "M",
-      color: "Black",
-      quantity: 1,
-    },
-    {
-      id: 2,
-      name: "Training Shorts",
-      price: 40,
-      image: "https://images.unsplash.com/photo-1591195853828-11db59a44f6b?w=200&q=80",
-      size: "L",
-      color: "Navy",
-      quantity: 2,
-    },
-  ])
+  const [cartItems, setCartItems] = useState<CartItem[]>([])
+  const [isLoading, setIsLoading] = useState(false)
 
-  const updateQuantity = (id: number, change: number) => {
-    setCartItems((items) =>
-      items.map((item) =>
-        item.id === id
-          ? { ...item, quantity: Math.max(1, item.quantity + change) }
-          : item
-      )
-    )
+  // 1. Fetch Cart Data when Sidebar Opens
+  useEffect(() => {
+    if (open) {
+      fetchCart()
+    }
+  }, [open])
+
+  const fetchCart = async () => {
+    setIsLoading(true)
+    try {
+      const data:any = await userService.getCart()
+      
+      // Map Backend Data to UI Interface
+      // Backend returns: { items: [{ id, quantity, size, color, product: { ... } }] }
+      const formattedItems = (data?.items || []).map((item: any) => ({
+        id: item.id,
+        productId: item.productId,
+        name: item.product.name,
+        price: Number(item.product.price),
+        image: item.product.images?.[0] || "",
+        size: item.size,
+        color: item.color,
+        quantity: item.quantity
+      }))
+
+      setCartItems(formattedItems)
+    } catch (error) {
+      console.error("Failed to fetch cart", error)
+    } finally {
+      setIsLoading(false)
+    }
   }
 
-  const removeItem = (id: number) => {
-    setCartItems((items) => items.filter((item) => item.id !== id))
+  // 2. Dynamic Quantity Update
+  // Uses your backend logic: existingQuantity + quantity(payload)
+  const updateQuantity = async (item: CartItem, change: number) => {
+    // Optimistic Update (Instant UI feedback)
+    setCartItems(prev => prev.map(i => 
+      i.id === item.id ? { ...i, quantity: Math.max(1, i.quantity + change) } : i
+    ))
+
+    try {
+      // Send +1 or -1 to backend
+      const res: any = await userService.addToCart({
+        productId: item.productId,
+        size: item.size,
+        color: item.color,
+        quantity: change
+      })
+      
+      // If backend returns the full cart (as per your controller), sync it
+      if (res && res.items) {
+         const formattedItems = res.items.map((i: any) => ({
+          id: i.id,
+          productId: i.productId,
+          name: i.product.name,
+          price: Number(i.product.price),
+          image: i.product.images?.[0] || "",
+          size: i.size,
+          color: i.color,
+          quantity: i.quantity
+        }))
+        setCartItems(formattedItems)
+      }
+    } catch (error) {
+      toast.error("Failed to update quantity")
+      // Revert on error
+      fetchCart()
+    }
+  }
+
+  // 3. Remove Item
+  const removeItem = async (id: string) => {
+    // Optimistic Update
+    setCartItems(items => items.filter((item) => item.id !== id))
+    
+    try {
+      await userService.removeFromCart(id)
+      toast.success("Item removed")
+    } catch (error) {
+      toast.error("Failed to remove item")
+      fetchCart() // Revert
+    }
   }
 
   const handleCheckout = () => {
@@ -68,6 +124,7 @@ export function CartSidebar({ open, onClose }: CartSidebarProps) {
     router.push("/checkout")
   }
 
+  // Calculations
   const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
   const shipping = subtotal > 75 ? 0 : 10
   const total = subtotal + shipping
@@ -76,7 +133,8 @@ export function CartSidebar({ open, onClose }: CartSidebarProps) {
   return (
     <Sheet open={open} onOpenChange={onClose}>
       <SheetContent className="w-full sm:max-w-lg flex flex-col p-0">
-        {/* Header - Enhanced for mobile */}
+        
+        {/* Header */}
         <div className="p-4 sm:p-6 border-b bg-gradient-to-r from-background via-muted/30 to-background">
           <SheetHeader>
             <SheetTitle className="flex items-center gap-3 text-lg sm:text-xl">
@@ -91,7 +149,12 @@ export function CartSidebar({ open, onClose }: CartSidebarProps) {
           </SheetHeader>
         </div>
 
-        {cartItems.length === 0 ? (
+        {isLoading && cartItems.length === 0 ? (
+          <div className="flex-1 flex items-center justify-center">
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          </div>
+        ) : cartItems.length === 0 ? (
+          // Empty State
           <div className="flex-1 flex flex-col items-center justify-center text-center p-8 sm:p-6">
             <div className="relative mb-6">
               <div className="absolute inset-0 bg-primary/20 rounded-full blur-xl animate-pulse" />
@@ -110,7 +173,7 @@ export function CartSidebar({ open, onClose }: CartSidebarProps) {
           </div>
         ) : (
           <>
-            {/* Free shipping progress - Enhanced for mobile */}
+            {/* Free shipping progress */}
             <div className="px-4 sm:px-6 py-3 sm:py-4 bg-gradient-to-r from-emerald-500/10 via-teal-500/10 to-emerald-500/10">
               {subtotal >= 75 ? (
                 <div className="flex items-center gap-3 text-emerald-600">
@@ -146,12 +209,14 @@ export function CartSidebar({ open, onClose }: CartSidebarProps) {
                     style={{ animationDelay: `${index * 100}ms` }}
                   >
                     <div className="relative w-24 h-28 sm:w-24 sm:h-24 rounded-xl sm:rounded-md overflow-hidden bg-muted flex-shrink-0 shadow-sm">
-                      <Image
-                        src={item.image}
-                        alt={item.name}
-                        fill
-                        className="object-cover"
-                      />
+                      {item.image && (
+                        <Image
+                          src={item.image}
+                          alt={item.name}
+                          fill
+                          className="object-cover"
+                        />
+                      )}
                     </div>
                     <div className="flex-1 min-w-0 py-1 sm:py-0">
                       <div className="flex justify-between items-start mb-1">
@@ -176,7 +241,8 @@ export function CartSidebar({ open, onClose }: CartSidebarProps) {
                             variant="ghost"
                             size="icon"
                             className="h-9 w-9 sm:h-8 sm:w-8 rounded-full sm:rounded-md"
-                            onClick={() => updateQuantity(item.id, -1)}
+                            disabled={item.quantity <= 1}
+                            onClick={() => updateQuantity(item, -1)}
                           >
                             <Minus className="h-3 w-3" />
                           </Button>
@@ -187,7 +253,7 @@ export function CartSidebar({ open, onClose }: CartSidebarProps) {
                             variant="ghost"
                             size="icon"
                             className="h-9 w-9 sm:h-8 sm:w-8 rounded-full sm:rounded-md"
-                            onClick={() => updateQuantity(item.id, 1)}
+                            onClick={() => updateQuantity(item, 1)}
                           >
                             <Plus className="h-3 w-3" />
                           </Button>
@@ -202,9 +268,8 @@ export function CartSidebar({ open, onClose }: CartSidebarProps) {
               </div>
             </ScrollArea>
 
-            {/* Footer - Enhanced for mobile */}
+            {/* Footer */}
             <div className="p-4 sm:p-6 border-t bg-gradient-to-t from-muted/50 to-background space-y-4">
-              {/* Order Summary */}
               <div className="space-y-3 sm:space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Subtotal</span>
@@ -223,7 +288,7 @@ export function CartSidebar({ open, onClose }: CartSidebarProps) {
                 </div>
               </div>
 
-              {/* Trust badges - Mobile only */}
+              {/* Trust badges */}
               <div className="flex items-center justify-center gap-4 py-2 sm:hidden">
                 <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
                   <Shield className="h-3.5 w-3.5" />
