@@ -1,7 +1,8 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+// ✅ Import useSearchParams
+import { useRouter, useSearchParams } from "next/navigation"
 import Image from "next/image"
 import { Header } from "@/components/Header"
 import { Footer } from "@/components/Footer"
@@ -10,416 +11,400 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { ShoppingBag, Lock, CreditCard, Smartphone, Wallet } from "lucide-react"
-import { createRazorpayOrder, verifyRazorpayPayment } from "@/lib/payment"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { ShoppingBag, Lock, CreditCard, Banknote, Loader2, Truck } from "lucide-react"
+import { createRazorpayOrder, verifyRazorpayPayment } from "@/lib/api/payment"
 import { RazorpayPaymentResponse } from "@/lib/razorpay.types"
+import toast from "react-hot-toast"
+import { loadRazorpayScript } from "@/lib/utils"
+import { useAuthStore } from "@/store/useAuthStore"
+import { userService } from "@/lib/api/user"
 
-import { toast } from "sonner"
-
-interface CartItem {
-  id: number
-  name: string
-  price: number
-  image: string
-  size: string
-  color: string
-  quantity: number
+// --- TYPES ---
+interface CartItem { id: string; name: string; price: number; image: string; size: string; color: string; quantity: number; }
+interface Address { id: string; name: string; phone: string; tag: string; street: string; city: string; state: string; zip: string; }
+interface CheckoutFormData {
+  firstName: string; lastName: string; email: string; phone: string; address: string; city: string; state: string; zipCode: string; country: string;
 }
 
 export default function CheckoutPage() {
   const router = useRouter()
+  // ✅ 1. Get Query Params to check mode
+  const searchParams = useSearchParams()
+  const isBuyNowMode = searchParams.get("mode") === "buy_now"
+
+  const { user, isAuthenticated, isLoading: authLoading } = useAuthStore()
+
   const [loading, setLoading] = useState(false)
+  const [dataLoading, setDataLoading] = useState(true)
+  const [cartItems, setCartItems] = useState<CartItem[]>([])
+  const [savedAddresses, setSavedAddresses] = useState<Address[]>([])
+
+  // Payment Method State
+  const [paymentMethod, setPaymentMethod] = useState<"ONLINE" | "COD">("ONLINE")
+
   const [formData, setFormData] = useState<CheckoutFormData>({
-    firstName: "",
-    lastName: "",
-    email: "",
-    phone: "",
-    address: "",
-    city: "",
-    state: "",
-    zipCode: "",
-    country: "India",
+    firstName: "", lastName: "", email: "", phone: "", address: "", city: "", state: "", zipCode: "", country: "India",
   })
+  const [errors, setErrors] = useState<Partial<CheckoutFormData>>({})
 
-  // Mock cart items - in real app, get from cart context/state
-  const [cartItems] = useState<CartItem[]>([
-    {
-      id: 1,
-      name: "Flex Performance Tee",
-      price: 35,
-      image: "https://images.unsplash.com/photo-1583743814966-8936f5b7be1a?w=200&q=80",
-      size: "M",
-      color: "Black",
-      quantity: 1,
-    },
-    {
-      id: 2,
-      name: "Training Shorts",
-      price: 40,
-      image: "https://images.unsplash.com/photo-1591195853828-11db59a44f6b?w=200&q=80",
-      size: "L",
-      color: "Navy",
-      quantity: 2,
-    },
-  ])
+  useEffect(() => {
+    if (!authLoading && !isAuthenticated) {
+      router.replace("/login")
+      return
+    }
+    // ✅ Add isBuyNowMode to dependency array so it refreshes if mode changes
+    if (isAuthenticated) fetchCheckoutData()
+  }, [isAuthenticated, authLoading, router, isBuyNowMode])
 
-  const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
-  const shipping = subtotal > 75 ? 0 : 10
-  const tax = Math.round(subtotal * 0.18) // 18% GST
-  const total = subtotal + shipping + tax
+  const fetchCheckoutData = async () => {
+    setDataLoading(true)
+    try {
+      // 1. Fetch Addresses (Always needed)
+      const addressData = await userService.getAddresses().catch(() => [])
+      setSavedAddresses(addressData as Address[])
+
+      // ✅ 2. DECIDE SOURCE: LocalStorage (Buy Now) vs DB Cart (Standard)
+      if (isBuyNowMode) {
+        const storedItem = localStorage.getItem("directCheckoutItem")
+        
+        if (storedItem) {
+          setCartItems(JSON.parse(storedItem))
+        } else {
+          // Safety: If mode is buy_now but storage is empty, go back
+          toast.error("Session expired")
+          router.replace("/products")
+          return
+        }
+      } else {
+        // --- Normal Cart Fetch ---
+        const cartData = await userService.getCart()
+        // @ts-ignore
+        const mappedCart = (cartData?.items || []).map((item: any) => ({
+          id: item.id,
+          // Store real product ID for logic, item ID for keys
+          productId: item.productId, 
+          name: item.product.name,
+          price: Number(item.product.price),
+          image: item.product.images?.[0] || "",
+          size: item.size,
+          color: item.color,
+          quantity: item.quantity
+        }))
+        setCartItems(mappedCart)
+      }
+
+      // 3. Pre-fill Form
+      if (user) {
+        const nameParts = user.name.split(" ")
+        setFormData(prev => ({
+          ...prev,
+          firstName: prev.firstName || nameParts[0] || "",
+          lastName: prev.lastName || nameParts.slice(1).join(" ") || "",
+          email: prev.email || user.email || ""
+        }))
+      }
+    } catch (error) {
+      toast.error("Failed to load details")
+    } finally {
+      setDataLoading(false)
+    }
+  }
+
+  const handleSelectAddress = (addressId: string) => {
+    const selected = savedAddresses.find(addr => addr.id === addressId)
+    if (selected) {
+      const nameParts = selected.name.split(" ")
+      setFormData(prev => ({
+        ...prev, firstName: nameParts[0] || "", lastName: nameParts.slice(1).join(" ") || "", phone: selected.phone || "", address: selected.street || "", city: selected.city || "", state: selected.state || "", zipCode: selected.zip || "",
+      }))
+      setErrors({})
+    }
+  }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value,
-    })
+    const { name, value } = e.target
+    setFormData(prev => ({ ...prev, [name]: value }))
+    if (errors[name as keyof CheckoutFormData]) {
+      setErrors(prev => ({ ...prev, [name]: undefined }))
+    }
   }
 
   const validateForm = () => {
-    if (!formData.firstName || !formData.lastName) {
-      toast.error("Please enter your full name")
-      return false
-    }
-    if (!formData.email || !/\S+@\S+\.\S+/.test(formData.email)) {
-      toast.error("Please enter a valid email address")
-      return false
-    }
-    if (!formData.phone || !/^\d{10}$/.test(formData.phone)) {
-      toast.error("Please enter a valid 10-digit phone number")
-      return false
-    }
-    if (!formData.address) {
-      toast.error("Please enter your address")
-      return false
-    }
-    if (!formData.city) {
-      toast.error("Please enter your city")
-      return false
-    }
-    if (!formData.state) {
-      toast.error("Please enter your state")
-      return false
-    }
-    if (!formData.zipCode || !/^\d{6}$/.test(formData.zipCode)) {
-      toast.error("Please enter a valid 6-digit PIN code")
-      return false
-    }
-    return true
+    const newErrors: Partial<CheckoutFormData> = {}
+    let isValid = true
+
+    if (!formData.firstName.trim()) { newErrors.firstName = "Required"; isValid = false; }
+    if (!formData.lastName.trim()) { newErrors.lastName = "Required"; isValid = false; }
+    if (!formData.email.trim()) { newErrors.email = "Required"; isValid = false; }
+    else if (!/\S+@\S+\.\S+/.test(formData.email)) { newErrors.email = "Invalid email"; isValid = false; }
+    if (!formData.phone.trim()) { newErrors.phone = "Required"; isValid = false; }
+    else if (!/^\d{10}$/.test(formData.phone)) { newErrors.phone = "10 digits req"; isValid = false; }
+    if (!formData.address.trim()) { newErrors.address = "Required"; isValid = false; }
+    if (!formData.city.trim()) { newErrors.city = "Required"; isValid = false; }
+    if (!formData.state.trim()) { newErrors.state = "Required"; isValid = false; }
+    if (!formData.zipCode.trim()) { newErrors.zipCode = "Required"; isValid = false; }
+    else if (!/^\d{6}$/.test(formData.zipCode)) { newErrors.zipCode = "6 digits req"; isValid = false; }
+
+    setErrors(newErrors)
+    return isValid
   }
 
   const handlePayment = async () => {
-    console.log("🔥 Complete Payment clicked");
-
-  // if (!validateForm()) return
-
-  try {
-    setLoading(true)
-
-    const amountInPaise = total * 100
-
-    // 1️⃣ Create order from backend
-    const order = await createRazorpayOrder(amountInPaise)
-    console.log("✅ Razorpay order:", order);
-
-    // 2️⃣ Razorpay options
-    const options = {
-      key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,
-      amount: amountInPaise,
-      currency: "INR",
-      name: "Raawr",
-      description: "Order Payment",
-      order_id: order.id,
-
-      prefill: {
-        name: `${formData.firstName} ${formData.lastName}`,
-        email: formData.email,
-        contact: formData.phone,
-      },
-
-      theme: {
-        color: "#000000",
-      },
-
-      handler: async (response: RazorpayPaymentResponse) => {
-        try {
-          await verifyRazorpayPayment(response)
-          toast.success("Payment successful!")
-          router.push(`/payment-success?payment_id=${response.razorpay_payment_id}`)
-        } catch {
-          toast.error("Payment verification failed")
-        }
-      },
-
-      modal: {
-        ondismiss: () => {
-          toast.info("Payment cancelled")
-          setLoading(false)
-        },
-      },
+    if (!validateForm()) {
+      toast.error("Please fix form errors")
+      return
     }
-    console.log("window.Razorpay =", window.Razorpay);
 
+    try {
+      setLoading(true)
 
-    // 3️⃣ Open Razorpay modal
-    const razorpay = new (window as any).Razorpay(options)
-    razorpay.open()
-  } catch (err) {
-    console.error(err)
-    toast.error("Payment failed. Please try again.")
-  } finally {
-    setLoading(false)
+      // ✅ 3. PREPARE PAYLOAD
+      // If Buy Now: Send 'directItems'
+      // If Normal: Send nothing (backend uses cart)
+      let payload: any = {
+        address: formData,
+        paymentMethod: paymentMethod
+      };
+
+      if (isBuyNowMode) {
+        // Map UI items back to simplified API structure
+        payload.directItems = cartItems.map(item => ({
+             // Handle mapping: 'productId' comes from LS, 'item.id' might be cartItem id
+            productId: (item as any).productId || item.id, 
+            quantity: item.quantity,
+            size: item.size,
+            color: item.color
+        }));
+      }
+
+      // 1. Create Order
+      const orderData: any = await createRazorpayOrder(payload)
+
+      if (!orderData || !orderData.orderId && !orderData.id) {
+        throw new Error("Failed to create order")
+      }
+
+      // === SCENARIO A: CASH ON DELIVERY ===
+      if (orderData.mode === 'COD') {
+        // ✅ Clear LocalStorage if it was a direct buy
+        if(isBuyNowMode) localStorage.removeItem("directCheckoutItem");
+
+        toast.success("Order Placed Successfully!")
+        router.push(`/payment-success?orderId=${orderData.orderId}`)
+        return
+      }
+
+      // === SCENARIO B: ONLINE PAYMENT ===
+      // 2. Load Razorpay Script
+      const isScriptLoaded = await loadRazorpayScript()
+      if (!isScriptLoaded) {
+        toast.error("Failed to load Payment Gateway")
+        setLoading(false)
+        return
+      }
+
+      // 3. Open Razorpay
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,
+        amount: orderData.amount,
+        currency: "INR",
+        name: "Raawr Store",
+        description: "Order Payment",
+        order_id: orderData.id,
+        prefill: {
+          name: `${formData.firstName} ${formData.lastName}`,
+          email: formData.email,
+          contact: formData.phone
+        },
+        theme: { color: "#000000" },
+        handler: async (response: RazorpayPaymentResponse) => {
+          try {
+            await verifyRazorpayPayment(response)
+            
+            // ✅ Clear LocalStorage on success
+            if(isBuyNowMode) localStorage.removeItem("directCheckoutItem");
+
+            toast.success("Payment Successful!")
+            router.push(`/payment-success?payment_id=${response.razorpay_payment_id}`)
+          } catch (error) {
+            console.error(error)
+            toast.error("Verification failed")
+          }
+        },
+        modal: { ondismiss: () => setLoading(false) },
+      }
+
+      const razorpay = new (window as any).Razorpay(options)
+      razorpay.open()
+
+    } catch (err: any) {
+      console.error(err)
+      toast.error(err.message || "Something went wrong")
+      setLoading(false)
+    }
   }
-}
+
+  if (authLoading || dataLoading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin h-8 w-8 text-primary" /></div>
+  
+  // Show empty state only if NOT loading and NO items
+  if (!dataLoading && cartItems.length === 0) return <div className="min-h-screen flex flex-col items-center justify-center gap-4"><ShoppingBag className="h-16 w-16 text-muted-foreground" /><h2 className="text-2xl font-bold">Checkout is empty</h2><Button onClick={() => router.push("/products")}>Go Shopping</Button></div>
+
+  // Price Calc (Display Only)
+  const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
+  const shipping = subtotal > 75 ? 0 : 10
+  const tax = Math.round(subtotal * 0.18)
+  const total = subtotal + shipping + tax
 
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
-
       <main className="flex-1 py-12 bg-muted/30">
         <div className="container mx-auto px-4">
           <div className="max-w-6xl mx-auto">
-            <h1 className="text-3xl font-bold mb-8">Checkout</h1>
-
+            <h1 className="text-3xl font-bold mb-8">
+              {isBuyNowMode ? "Buy Now Checkout" : "Checkout"}
+            </h1>
             <div className="grid lg:grid-cols-3 gap-8">
-              {/* Left Column - Forms */}
+
               <div className="lg:col-span-2 space-y-6">
-                {/* Shipping Information */}
+
+                {/* ADDRESS SECTION */}
                 <Card>
-                  <CardHeader>
+                  <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle>Shipping Information</CardTitle>
+                    {savedAddresses.length > 0 && (
+                      <div className="w-[200px]">
+                        <Select onValueChange={handleSelectAddress}>
+                          <SelectTrigger className="h-9"><SelectValue placeholder="Load Saved Address" /></SelectTrigger>
+                          <SelectContent>{savedAddresses.map(addr => <SelectItem key={addr.id} value={addr.id}>{addr.tag} - {addr.name}</SelectItem>)}</SelectContent>
+                        </Select>
+                      </div>
+                    )}
                   </CardHeader>
                   <CardContent className="space-y-4">
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="firstName">First Name *</Label>
-                        <Input
-                          id="firstName"
-                          name="firstName"
-                          value={formData.firstName}
-                          onChange={handleInputChange}
-                          placeholder="John"
-                          required
-                        />
+                        <Label>First Name *</Label>
+                        <Input name="firstName" value={formData.firstName} onChange={handleInputChange} className={errors.firstName ? "border-red-500" : ""} />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="lastName">Last Name *</Label>
-                        <Input
-                          id="lastName"
-                          name="lastName"
-                          value={formData.lastName}
-                          onChange={handleInputChange}
-                          placeholder="Doe"
-                          required
-                        />
+                        <Label>Last Name *</Label>
+                        <Input name="lastName" value={formData.lastName} onChange={handleInputChange} className={errors.lastName ? "border-red-500" : ""} />
                       </div>
                     </div>
-
                     <div className="space-y-2">
-                      <Label htmlFor="email">Email Address *</Label>
-                      <Input
-                        id="email"
-                        name="email"
-                        type="email"
-                        value={formData.email}
-                        onChange={handleInputChange}
-                        placeholder="john.doe@example.com"
-                        required
-                      />
+                      <Label>Email *</Label>
+                      <Input name="email" value={formData.email} onChange={handleInputChange} className={errors.email ? "border-red-500" : ""} />
                     </div>
-
                     <div className="space-y-2">
-                      <Label htmlFor="phone">Phone Number *</Label>
-                      <Input
-                        id="phone"
-                        name="phone"
-                        type="tel"
-                        value={formData.phone}
-                        onChange={handleInputChange}
-                        placeholder="9876543210"
-                        maxLength={10}
-                        required
-                      />
+                      <Label>Phone *</Label>
+                      <Input name="phone" value={formData.phone} onChange={handleInputChange} className={errors.phone ? "border-red-500" : ""} maxLength={10} placeholder="10 digits" />
                     </div>
-
                     <div className="space-y-2">
-                      <Label htmlFor="address">Address *</Label>
-                      <Input
-                        id="address"
-                        name="address"
-                        value={formData.address}
-                        onChange={handleInputChange}
-                        placeholder="Street address, apartment, suite, etc."
-                        required
-                      />
+                      <Label>Address *</Label>
+                      <Input name="address" value={formData.address} onChange={handleInputChange} className={errors.address ? "border-red-500" : ""} />
                     </div>
-
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="city">City *</Label>
-                        <Input
-                          id="city"
-                          name="city"
-                          value={formData.city}
-                          onChange={handleInputChange}
-                          placeholder="Mumbai"
-                          required
-                        />
+                        <Label>City *</Label>
+                        <Input name="city" value={formData.city} onChange={handleInputChange} className={errors.city ? "border-red-500" : ""} />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="state">State *</Label>
-                        <Input
-                          id="state"
-                          name="state"
-                          value={formData.state}
-                          onChange={handleInputChange}
-                          placeholder="Maharashtra"
-                          required
-                        />
+                        <Label>State *</Label>
+                        <Input name="state" value={formData.state} onChange={handleInputChange} className={errors.state ? "border-red-500" : ""} />
                       </div>
                     </div>
-
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="zipCode">PIN Code *</Label>
-                        <Input
-                          id="zipCode"
-                          name="zipCode"
-                          value={formData.zipCode}
-                          onChange={handleInputChange}
-                          placeholder="400001"
-                          maxLength={6}
-                          required
-                        />
+                        <Label>PIN Code *</Label>
+                        <Input name="zipCode" value={formData.zipCode} onChange={handleInputChange} className={errors.zipCode ? "border-red-500" : ""} maxLength={6} />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="country">Country</Label>
-                        <Input
-                          id="country"
-                          name="country"
-                          value={formData.country}
-                          onChange={handleInputChange}
-                          disabled
-                        />
+                        <Label>Country</Label>
+                        <Input name="country" value={formData.country} disabled />
                       </div>
                     </div>
                   </CardContent>
                 </Card>
 
-                {/* Payment Methods */}
+                {/* ✅ PAYMENT METHOD SECTION (Compact & Responsive) */}
                 <Card>
-                  <CardHeader>
-                    <CardTitle>Payment Method</CardTitle>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base">Payment Method</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-4">
-                      <p className="text-sm text-muted-foreground">
-                        We accept all major payment methods via Razorpay
-                      </p>
-                      <div className="flex flex-wrap gap-4">
-                        <div className="flex items-center gap-2 px-4 py-2 bg-muted rounded-lg">
-                          <CreditCard className="h-5 w-5" />
-                          <span className="text-sm font-medium">Cards</span>
-                        </div>
-                        <div className="flex items-center gap-2 px-4 py-2 bg-muted rounded-lg">
-                          <Smartphone className="h-5 w-5" />
-                          <span className="text-sm font-medium">UPI</span>
-                        </div>
-                        <div className="flex items-center gap-2 px-4 py-2 bg-muted rounded-lg">
-                          <Wallet className="h-5 w-5" />
-                          <span className="text-sm font-medium">Wallets</span>
-                        </div>
-                        <div className="flex items-center gap-2 px-4 py-2 bg-muted rounded-lg">
-                          <span className="text-sm font-medium">Net Banking</span>
-                        </div>
-                      </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+
+                      {/* ONLINE BUTTON */}
+                      <button
+                        type="button"
+                        onClick={() => setPaymentMethod("ONLINE")}
+                        className={`flex items-center justify-center gap-2 px-3 py-3 rounded-lg border transition-all text-sm font-medium ${paymentMethod === "ONLINE"
+                            ? "border-black bg-black text-white shadow-md"
+                            : "border-input hover:border-gray-400 bg-white text-gray-700 hover:bg-gray-50"
+                          }`}
+                      >
+                        <CreditCard className="h-4 w-4" />
+                        <span>Online Payment</span>
+                      </button>
+
+                      {/* COD BUTTON */}
+                      <button
+                        type="button"
+                        onClick={() => setPaymentMethod("COD")}
+                        className={`flex items-center justify-center gap-2 px-3 py-3 rounded-lg border transition-all text-sm font-medium ${paymentMethod === "COD"
+                            ? "border-black bg-black text-white shadow-md"
+                            : "border-input hover:border-gray-400 bg-white text-gray-700 hover:bg-gray-50"
+                          }`}
+                      >
+                        <Banknote className="h-4 w-4" />
+                        <span>Cash on Delivery</span>
+                      </button>
+
                     </div>
                   </CardContent>
                 </Card>
               </div>
 
-              {/* Right Column - Order Summary */}
+              {/* ORDER SUMMARY */}
               <div className="lg:col-span-1">
-                <Card className="sticky top-4">
-                  <CardHeader>
-                    <CardTitle className="flex items-center gap-2">
-                      <ShoppingBag className="h-5 w-5" />
-                      Order Summary
-                    </CardTitle>
-                  </CardHeader>
+                <Card className="sticky top-24">
+                  <CardHeader><CardTitle className="flex gap-2"><ShoppingBag className="h-5 w-5" /> Order Summary</CardTitle></CardHeader>
                   <CardContent className="space-y-4">
-                    {/* Cart Items */}
-                    <div className="space-y-4">
+                    <div className="space-y-4 max-h-[300px] overflow-auto pr-2">
                       {cartItems.map((item) => (
                         <div key={item.id} className="flex gap-3">
-                          <div className="relative w-16 h-16 rounded-md overflow-hidden bg-muted flex-shrink-0">
-                            <Image
-                              src={item.image}
-                              alt={item.name}
-                              fill
-                              className="object-cover"
-                            />
+                          <div className="relative w-16 h-16 rounded bg-muted overflow-hidden border">
+                            {item.image && <Image src={item.image} alt={item.name} fill className="object-cover" />}
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <h4 className="font-medium text-sm leading-tight mb-1">
-                              {item.name}
-                            </h4>
-                            <p className="text-xs text-muted-foreground mb-1">
-                              {item.color} / {item.size}
-                            </p>
-                            <p className="text-sm">
-                              <span className="text-muted-foreground">Qty: {item.quantity}</span>
-                              <span className="ml-2 font-medium">${item.price * item.quantity}</span>
-                            </p>
+                          <div className="flex-1">
+                            <h4 className="font-medium text-sm truncate">{item.name}</h4>
+                            <p className="text-xs text-muted-foreground">{item.color} / {item.size}</p>
+                            <p className="text-sm flex justify-between mt-1"><span className="text-muted-foreground">Qty: {item.quantity}</span><span className="font-medium">${(item.price * item.quantity).toFixed(2)}</span></p>
                           </div>
                         </div>
                       ))}
                     </div>
-
                     <Separator />
-
-                    {/* Price Breakdown */}
-                    <div className="space-y-2">
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Subtotal</span>
-                        <span className="font-medium">${subtotal}</span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Shipping</span>
-                        <span className="font-medium">
-                          {shipping === 0 ? "Free" : `$${shipping}`}
-                        </span>
-                      </div>
-                      <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Tax (GST 18%)</span>
-                        <span className="font-medium">${tax}</span>
-                      </div>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>${subtotal.toFixed(2)}</span></div>
+                      <div className="flex justify-between"><span className="text-muted-foreground">Shipping</span><span>{shipping === 0 ? "Free" : `$${shipping.toFixed(2)}`}</span></div>
+                      <div className="flex justify-between"><span className="text-muted-foreground">Tax (18%)</span><span>${tax.toFixed(2)}</span></div>
                       <Separator />
-                      <div className="flex justify-between text-lg font-bold">
-                        <span>Total</span>
-                        <span>${total}</span>
-                      </div>
+                      <div className="flex justify-between text-lg font-bold"><span>Total</span><span>${total.toFixed(2)}</span></div>
                     </div>
 
-                    {/* Checkout Button */}
-                    <Button
-                      className="w-full"
-                      size="lg"
-                      onClick={handlePayment}
-                      disabled={loading}
-                    >
+                    {/* PAY BUTTON */}
+                    <Button className="w-full" size="lg" onClick={handlePayment} disabled={loading}>
                       {loading ? (
-                        "Processing..."
+                        <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...</>
                       ) : (
-                        <>
-                          <Lock className="mr-2 h-4 w-4" />
-                          Complete Payment
-                        </>
+                        paymentMethod === "COD"
+                          ? <><Truck className="mr-2 h-4 w-4" /> Place Order (COD)</>
+                          : <><Lock className="mr-2 h-4 w-4" /> Pay ${total.toFixed(2)}</>
                       )}
                     </Button>
-
-                    <p className="text-xs text-center text-muted-foreground">
-                      Your payment information is secure and encrypted
-                    </p>
                   </CardContent>
                 </Card>
               </div>
@@ -427,7 +412,6 @@ export default function CheckoutPage() {
           </div>
         </div>
       </main>
-
       <Footer />
     </div>
   )

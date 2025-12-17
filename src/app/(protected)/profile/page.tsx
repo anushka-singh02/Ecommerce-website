@@ -14,11 +14,11 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-// ✅ Added Phone and Briefcase icons
+import { Separator } from "@/components/ui/separator"
 import {
   User, Package, MapPin, Heart, Settings, LogOut,
   ShoppingBag, ShoppingCart, Trash2, Loader2, Plus, X,
-  Phone, Briefcase
+  Phone, Briefcase, Calendar, CreditCard, ExternalLink
 } from "lucide-react"
 
 // --- TYPES ---
@@ -28,8 +28,12 @@ interface Order {
   total?: number
   totalAmount?: number
   status: string
+  paymentMethod?: string // ✅ Added
+  shippingAddress?: any // ✅ Added
   items: Array<{
     id: string
+    quantity: number // ✅ Added
+    price: number // ✅ Added
     product: {
       name: string
       images: string[]
@@ -37,12 +41,11 @@ interface Order {
   }>
 }
 
-// ✅ UPDATED ADDRESS INTERFACE
 interface Address {
   id: string
-  name: string    // New
-  phone: string   // New
-  tag: string     // New
+  name: string
+  phone: string
+  tag: string
   street: string
   city: string
   state: string
@@ -50,15 +53,12 @@ interface Address {
   isDefault: boolean
 }
 
-// ✅ MATCHES YOUR BACKEND CONTROLLER
 interface WishlistItem {
   productId: string
   name: string
   price: number
   image: string
 }
-
-
 
 // SAFETY HELPER
 const formatPrice = (value: any) => {
@@ -78,7 +78,7 @@ export default function ProfilePage() {
   const [addresses, setAddresses] = useState<Address[]>([])
   const [dataLoading, setDataLoading] = useState(true)
 
-  // ✅ UPDATED ADDRESS FORM STATE (Includes new fields)
+  // Address Form State
   const [isAddressModalOpen, setIsAddressModalOpen] = useState(false)
   const [addressForm, setAddressForm] = useState({
     name: "",
@@ -90,7 +90,11 @@ export default function ProfilePage() {
     zip: ""
   })
 
-  const cartCount = 2;
+  // ✅ ORDER DETAILS MODAL STATE
+  const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
+  const [isOrderModalOpen, setIsOrderModalOpen] = useState(false)
+
+  const [cartCount, setCartCount] = useState(0)
 
   const [profileForm, setProfileForm] = useState({
     name: user?.name || "",
@@ -110,14 +114,23 @@ export default function ProfilePage() {
       const fetchData = async () => {
         setDataLoading(true)
         try {
-          const [ordersData, wishlistData, addressesData] = await Promise.all([
+          const [ordersData, wishlistData, addressesData, cartData] = await Promise.all([
             userService.getOrders().catch(() => []),
             userService.getWishlist().catch(() => []),
-            userService.getAddresses().catch(() => [])
+            userService.getAddresses().catch(() => []),
+            userService.getCart().catch(() => null)
           ])
+
           setOrders(ordersData as Order[])
           setWishlist(wishlistData as WishlistItem[])
           setAddresses(addressesData as Address[])
+
+          // @ts-ignore
+          const currentItems = cartData?.items || []
+          // @ts-ignore
+          const totalQuantity = currentItems.reduce((acc, item) => acc + item.quantity, 0)
+          setCartCount(totalQuantity)
+
         } catch (error) {
           console.error("Failed to load data", error)
         } finally {
@@ -162,7 +175,6 @@ export default function ProfilePage() {
 
       setAddresses(prev => [...prev, newAddr]);
       setIsAddressModalOpen(false);
-      // ✅ Reset all fields
       setAddressForm({ name: "", phone: "", tag: "HOME", street: "", city: "", state: "", zip: "" });
       toast.success("Address added successfully");
     } catch (error) {
@@ -170,9 +182,8 @@ export default function ProfilePage() {
     }
   }
 
-
   const handleRemoveFromWishlist = async (e: React.MouseEvent, productId: string) => {
-    e.preventDefault(); // Prevent clicking the parent Link
+    e.preventDefault();
     e.stopPropagation();
 
     try {
@@ -183,6 +194,12 @@ export default function ProfilePage() {
       toast.error("Failed to remove item");
     }
   };
+
+  // ✅ NEW: Handle View Order Click
+  const handleViewOrder = (order: Order) => {
+    setSelectedOrder(order);
+    setIsOrderModalOpen(true);
+  }
 
   if (isLoading || !isAuthenticated) return null;
 
@@ -325,7 +342,14 @@ export default function ProfilePage() {
                           </div>
                           <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto mt-2 sm:mt-0 gap-3">
                             <span className="font-bold text-xl">${safeTotal}</span>
-                            <Button variant="outline" className="w-full sm:w-auto">View Details</Button>
+                            {/* ✅ BUTTON NOW OPENS MODAL */}
+                            <Button 
+                              variant="outline" 
+                              className="w-full sm:w-auto"
+                              onClick={() => handleViewOrder(order)}
+                            >
+                              View Details
+                            </Button>
                           </div>
                         </div>
                       )
@@ -335,7 +359,6 @@ export default function ProfilePage() {
               </TabsContent>
 
               {/* 3. WISHLIST */}
-              {/* 3. WISHLIST - FIXED & CONNECTED */}
               <TabsContent value="wishlist" className="space-y-6 mt-0">
                 <div className="flex items-center justify-between">
                   <h2 className="text-2xl font-bold">My Wishlist</h2>
@@ -343,42 +366,27 @@ export default function ProfilePage() {
                 </div>
 
                 {dataLoading ? (
-                  <div className="flex justify-center py-20">
-                    <Loader2 className="h-8 w-8 animate-spin text-gray-400" />
-                  </div>
+                  <div className="flex justify-center py-20"><Loader2 className="h-8 w-8 animate-spin text-gray-400" /></div>
                 ) : wishlist.length === 0 ? (
-                  // ✅ NEW EMPTY STATE
                   <div className="flex flex-col items-center justify-center text-center py-16 bg-white border border-dashed rounded-xl">
                     <div className="h-16 w-16 bg-red-50 rounded-full flex items-center justify-center mb-4">
                       <Heart className="h-8 w-8 text-red-500 fill-red-500/20" />
                     </div>
                     <h3 className="text-xl font-semibold mb-2">Your wishlist is empty</h3>
-                    <p className="text-muted-foreground max-w-sm mb-6">
-                      Save items you love here so you can easily find them later.
-                    </p>
-                    <Button onClick={() => router.push('/products')}>
-                      Explore Products
-                    </Button>
+                    <p className="text-muted-foreground max-w-sm mb-6">Save items you love here so you can easily find them later.</p>
+                    <Button onClick={() => router.push('/products')}>Explore Products</Button>
                   </div>
                 ) : (
-                  // ✅ UPDATED GRID MAPPING
                   <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
                     {wishlist.map((item) => (
                       <Link key={item.productId} href={`/product/${item.productId}`}>
                         <Card className="overflow-hidden group cursor-pointer hover:shadow-lg transition-all border-muted">
                           <div className="relative h-[200px] bg-gray-100">
                             {item.image ? (
-                              <Image
-                                src={item.image}
-                                alt={item.name}
-                                fill
-                                className="object-cover group-hover:scale-105 transition-transform duration-500"
-                              />
+                              <Image src={item.image} alt={item.name} fill className="object-cover group-hover:scale-105 transition-transform duration-500" />
                             ) : (
                               <div className="flex items-center justify-center h-full text-gray-400 text-xs">No Image</div>
                             )}
-
-                            {/* ✅ WORKING REMOVE BUTTON */}
                             <button
                               onClick={(e) => handleRemoveFromWishlist(e, item.productId)}
                               className="absolute top-2 right-2 p-2 bg-white rounded-full shadow-sm text-red-500 hover:bg-red-50 transition-colors z-10"
@@ -387,14 +395,11 @@ export default function ProfilePage() {
                               <Trash2 className="h-4 w-4" />
                             </button>
                           </div>
-
                           <CardContent className="p-4">
                             <h3 className="font-medium truncate text-base mb-1">{item.name}</h3>
                             <div className="flex items-center justify-between">
                               <p className="font-bold text-lg">${formatPrice(item.price)}</p>
-                              <Button variant="ghost" size="sm" className="h-8 px-2 text-primary">
-                                View
-                              </Button>
+                              <Button variant="ghost" size="sm" className="h-8 px-2 text-primary">View</Button>
                             </div>
                           </CardContent>
                         </Card>
@@ -404,7 +409,7 @@ export default function ProfilePage() {
                 )}
               </TabsContent>
 
-              {/* 4. ADDRESSES (✅ UPDATED) */}
+              {/* 4. ADDRESSES */}
               <TabsContent value="addresses" className="space-y-6 mt-0">
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between">
@@ -417,41 +422,24 @@ export default function ProfilePage() {
                     </Button>
                   </CardHeader>
                   <CardContent className="grid md:grid-cols-2 gap-4">
-
                     {addresses.map((addr) => (
                       <div key={addr.id} className="border rounded-lg p-4 relative group bg-white shadow-sm hover:shadow-md transition-shadow">
                         <div className="absolute top-4 right-4 space-x-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-red-500 hover:text-red-600"
-                            onClick={() => handleDeleteAddress(addr.id)}
-                          >
+                          <Button variant="ghost" size="icon" className="h-8 w-8 text-red-500 hover:text-red-600" onClick={() => handleDeleteAddress(addr.id)}>
                             <Trash2 className="h-4 w-4" />
                           </Button>
                         </div>
-
-                        {/* ✅ Address Header with Tag Badge */}
                         <div className="flex items-center gap-2 mb-2">
-                          <span className={`inline-flex items-center justify-center px-2 py-1 rounded text-xs font-bold ${addr.tag === "OFFICE" ? 'bg-blue-600 text-white' : 'bg-black text-white'
-                            }`}>
+                          <span className={`inline-flex items-center justify-center px-2 py-1 rounded text-xs font-bold ${addr.tag === "OFFICE" ? 'bg-blue-600 text-white' : 'bg-black text-white'}`}>
                             {addr.tag === "OFFICE" ? <Briefcase className="h-3 w-3 mr-1" /> : <MapPin className="h-3 w-3 mr-1" />}
                             {addr.tag}
                           </span>
-                          {addr.isDefault && (
-                            <span className="px-2 py-1 bg-gray-100 text-xs rounded font-medium text-gray-600">Default</span>
-                          )}
+                          {addr.isDefault && <span className="px-2 py-1 bg-gray-100 text-xs rounded font-medium text-gray-600">Default</span>}
                         </div>
-
-                        {/* ✅ Recipient Name */}
                         <div className="font-semibold text-lg">{addr.name}</div>
-
-                        {/* Address Details */}
                         <div className="text-sm text-gray-600 mt-1 space-y-1">
                           <p>{addr.street}</p>
                           <p>{addr.city}, {addr.state} {addr.zip}</p>
-
-                          {/* ✅ Phone Number */}
                           <div className="flex items-center gap-2 mt-3 text-black font-medium">
                             <Phone className="h-3 w-3" />
                             <span>{addr.phone}</span>
@@ -459,11 +447,7 @@ export default function ProfilePage() {
                         </div>
                       </div>
                     ))}
-
-                    <div
-                      className="border border-dashed rounded-lg p-4 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-muted/50 transition-colors h-full min-h-[140px]"
-                      onClick={() => setIsAddressModalOpen(true)}
-                    >
+                    <div className="border border-dashed rounded-lg p-4 flex flex-col items-center justify-center text-center cursor-pointer hover:bg-muted/50 transition-colors h-full min-h-[140px]" onClick={() => setIsAddressModalOpen(true)}>
                       <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center mb-2">
                         <Plus className="h-5 w-5 text-muted-foreground" />
                       </div>
@@ -494,114 +478,160 @@ export default function ProfilePage() {
         </div>
       </main>
 
-      {/* ✅ UPDATED ADDRESS MODAL */}
+      {/* --- MODALS --- */}
+
+      {/* 1. ADDRESS MODAL */}
       {isAddressModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <Card className="w-full max-w-lg relative animate-in fade-in zoom-in duration-200">
-            <button
-              onClick={() => setIsAddressModalOpen(false)}
-              className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100 transition-colors"
-            >
-              <X className="h-4 w-4" />
-            </button>
+            <button onClick={() => setIsAddressModalOpen(false)} className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100 transition-colors"><X className="h-4 w-4" /></button>
             <CardHeader>
               <CardTitle>Add New Address</CardTitle>
               <CardDescription>Enter delivery details below.</CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleAddAddress} className="space-y-4">
-
-                {/* ✅ Tag Selection */}
                 <div className="space-y-2">
                   <Label>Address Type</Label>
                   <div className="flex gap-4">
                     {['HOME', 'OFFICE', 'OTHER'].map((type) => (
-                      <button
-                        key={type}
-                        type="button"
-                        onClick={() => setAddressForm({ ...addressForm, tag: type })}
-                        className={`flex-1 py-2 text-sm font-medium rounded-md border transition-all ${addressForm.tag === type
-                            ? 'bg-black text-white border-black'
-                            : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
-                          }`}
-                      >
-                        {type}
-                      </button>
+                      <button key={type} type="button" onClick={() => setAddressForm({ ...addressForm, tag: type })} className={`flex-1 py-2 text-sm font-medium rounded-md border transition-all ${addressForm.tag === type ? 'bg-black text-white border-black' : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'}`}>{type}</button>
                     ))}
                   </div>
                 </div>
-
-                {/* ✅ Recipient Name & Phone */}
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="addr-name">Recipient Name</Label>
-                    <Input
-                      id="addr-name"
-                      placeholder="John Doe"
-                      value={addressForm.name}
-                      onChange={(e) => setAddressForm({ ...addressForm, name: e.target.value })}
-                      required
-                    />
+                    <Input id="addr-name" placeholder="John Doe" value={addressForm.name} onChange={(e) => setAddressForm({ ...addressForm, name: e.target.value })} required />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="addr-phone">Phone Number</Label>
-                    <Input
-                      id="addr-phone"
-                      placeholder="+1 (555) 000-0000"
-                      value={addressForm.phone}
-                      onChange={(e) => setAddressForm({ ...addressForm, phone: e.target.value })}
-                      required
-                    />
+                    <Input id="addr-phone" placeholder="+1 (555) 000-0000" value={addressForm.phone} onChange={(e) => setAddressForm({ ...addressForm, phone: e.target.value })} required />
                   </div>
                 </div>
-
                 <div className="space-y-2">
                   <Label htmlFor="street">Street Address</Label>
-                  <Input
-                    id="street"
-                    placeholder="123 Main St"
-                    value={addressForm.street}
-                    onChange={(e) => setAddressForm({ ...addressForm, street: e.target.value })}
-                    required
-                  />
+                  <Input id="street" placeholder="123 Main St" value={addressForm.street} onChange={(e) => setAddressForm({ ...addressForm, street: e.target.value })} required />
                 </div>
-
                 <div className="grid grid-cols-3 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="city">City</Label>
-                    <Input
-                      id="city"
-                      placeholder="City"
-                      value={addressForm.city}
-                      onChange={(e) => setAddressForm({ ...addressForm, city: e.target.value })}
-                      required
-                    />
+                    <Input id="city" placeholder="City" value={addressForm.city} onChange={(e) => setAddressForm({ ...addressForm, city: e.target.value })} required />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="state">State</Label>
-                    <Input
-                      id="state"
-                      placeholder="State"
-                      value={addressForm.state}
-                      onChange={(e) => setAddressForm({ ...addressForm, state: e.target.value })}
-                      required
-                    />
+                    <Input id="state" placeholder="State" value={addressForm.state} onChange={(e) => setAddressForm({ ...addressForm, state: e.target.value })} required />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="zip">ZIP</Label>
-                    <Input
-                      id="zip"
-                      placeholder="ZIP"
-                      value={addressForm.zip}
-                      onChange={(e) => setAddressForm({ ...addressForm, zip: e.target.value })}
-                      required
-                    />
+                    <Input id="zip" placeholder="ZIP" value={addressForm.zip} onChange={(e) => setAddressForm({ ...addressForm, zip: e.target.value })} required />
                   </div>
                 </div>
-
                 <Button type="submit" className="w-full mt-2">Save Address</Button>
               </form>
             </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* ✅ 2. ORDER DETAILS MODAL */}
+      {isOrderModalOpen && selectedOrder && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <Card className="w-full max-w-2xl relative animate-in fade-in zoom-in duration-200 max-h-[90vh] flex flex-col">
+            <button 
+              onClick={() => setIsOrderModalOpen(false)} 
+              className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100 transition-colors z-10"
+            >
+              <X className="h-5 w-5" />
+            </button>
+
+            <CardHeader className="border-b">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div>
+                  <CardTitle className="flex items-center gap-2">
+                    Order #{selectedOrder.id.slice(0, 8)}
+                    <span className={`px-2 py-0.5 rounded-full text-xs font-semibold uppercase ${
+                      selectedOrder.status === 'DELIVERED' ? 'bg-green-100 text-green-700' : 
+                      selectedOrder.status === 'CANCELLED' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
+                    }`}>
+                      {selectedOrder.status}
+                    </span>
+                  </CardTitle>
+                  <CardDescription className="flex items-center gap-2 mt-1">
+                    <Calendar className="h-3 w-3" />
+                    {new Date(selectedOrder.createdAt).toLocaleDateString()} at {new Date(selectedOrder.createdAt).toLocaleTimeString()}
+                  </CardDescription>
+                </div>
+                {selectedOrder.paymentMethod && (
+                   <div className="flex items-center gap-2 text-sm text-muted-foreground bg-gray-50 px-3 py-1 rounded-md">
+                      <CreditCard className="h-4 w-4" />
+                      {selectedOrder.paymentMethod}
+                   </div>
+                )}
+              </div>
+            </CardHeader>
+
+            {/* Scrollable Content */}
+            <div className="overflow-y-auto p-0 flex-1">
+              <CardContent className="space-y-6 pt-6">
+                
+                {/* Product List */}
+                <div className="space-y-4">
+                  <h3 className="font-semibold text-sm text-gray-500 uppercase tracking-wider">Items Ordered</h3>
+                  {selectedOrder.items.map((item, idx) => (
+                    <div key={idx} className="flex gap-4 items-start">
+                      <div className="relative h-16 w-16 bg-gray-100 rounded-md overflow-hidden border flex-shrink-0">
+                         {item.product.images?.[0] ? (
+                            <Image src={item.product.images[0]} alt={item.product.name} fill className="object-cover" />
+                         ) : (
+                            <div className="w-full h-full flex items-center justify-center text-xs text-gray-400">No Img</div>
+                         )}
+                      </div>
+                      <div className="flex-1">
+                        <h4 className="font-medium text-sm line-clamp-2">{item.product.name}</h4>
+                        <p className="text-xs text-muted-foreground mt-1">Qty: {item.quantity || 1}</p>
+                      </div>
+                      <div className="font-semibold text-sm">
+                        ${formatPrice((item.price || 0) * (item.quantity ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <Separator />
+
+                {/* Shipping Info */}
+                {selectedOrder.shippingAddress && (
+                  <div>
+                    <h3 className="font-semibold text-sm text-gray-500 uppercase tracking-wider mb-2">Shipping Details</h3>
+                    <div className="text-sm space-y-1">
+                      <p className="font-medium text-black">{selectedOrder.shippingAddress.firstName} {selectedOrder.shippingAddress.lastName}</p>
+                      <p className="text-muted-foreground">{selectedOrder.shippingAddress.address}</p>
+                      <p className="text-muted-foreground">{selectedOrder.shippingAddress.city}, {selectedOrder.shippingAddress.state} {selectedOrder.shippingAddress.zipCode}</p>
+                      <p className="text-muted-foreground">{selectedOrder.shippingAddress.phone}</p>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </div>
+
+            <CardFooter className="border-t bg-gray-50 p-6">
+              <div className="w-full space-y-3">
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Subtotal</span>
+                  <span>${formatPrice(selectedOrder.total ?? selectedOrder.totalAmount)}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">Shipping</span>
+                  <span className="text-green-600">Free</span>
+                </div>
+                <Separator />
+                <div className="flex justify-between font-bold text-lg">
+                  <span>Total</span>
+                  <span>${formatPrice(selectedOrder.total ?? selectedOrder.totalAmount)}</span>
+                </div>
+              </div>
+            </CardFooter>
           </Card>
         </div>
       )}

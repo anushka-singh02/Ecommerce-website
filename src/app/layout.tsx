@@ -4,6 +4,8 @@ import VisualEditsMessenger from "../visual-edits/VisualEditsMessenger";
 import ErrorReporter from "@/components/ErrorReporter";
 import Script from "next/script";
 import { Providers } from "./providers";
+// ✅ 1. Import Toaster
+import { Toaster } from "react-hot-toast";
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -18,6 +20,37 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className="antialiased">
+        {/* ✅ 2. Add Toaster Component here */}
+        <Toaster
+  position="top-right" // ✅ Moves to the right side
+  reverseOrder={false}
+  toastOptions={{
+    // ✅ Professional Styling
+    className: '',
+    style: {
+      border: '1px solid #E2E8F0', // Subtle light grey border
+      padding: '12px 16px',
+      color: '#0F172A', // Dark professional text
+      fontSize: '14px',
+      background: '#FFFFFF',
+      boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06)', // Soft shadow
+      borderRadius: '8px', // Slightly less rounded for a pro look
+    },
+    success: {
+      iconTheme: {
+        primary: '#10B981', // Muted professional green
+        secondary: '#D1FAE5',
+      },
+    },
+    error: {
+      iconTheme: {
+        primary: '#EF4444', // Muted professional red
+        secondary: '#FEE2E2',
+      },
+    },
+  }}
+/>
+
         <Script
           id="orchids-browser-logs"
           src="https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/object/public/scripts/orchids-browser-logs.js"
@@ -36,7 +69,7 @@ export default function RootLayout({
           data-custom-data='{"appName": "YourApp", "version": "1.0.0", "greeting": "hi"}'
         />
         <Providers>
-        {children}
+          {children}
         </Providers>
         <Script
           src="https://checkout.razorpay.com/v1/checkout.js"

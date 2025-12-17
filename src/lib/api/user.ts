@@ -79,7 +79,7 @@ export const userService = {
   },
 
   updateProfile: async (data: ProfileUpdateData) => {
-    return fetcher('/auth/me', {
+    return fetcher('/user/me', {
       method: 'PUT',
       body: JSON.stringify(data),
     });

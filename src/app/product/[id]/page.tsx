@@ -24,7 +24,7 @@ export default function ProductDetailPage() {
   const router = useRouter()
   // ✅ Get Auth Status from Store
   const { isAuthenticated } = useAuthStore()
-  
+
   const id = Array.isArray(params.id) ? params.id[0] : params.id;
 
   // --- 1. FETCH PRODUCT DATA ---
@@ -47,7 +47,7 @@ export default function ProductDetailPage() {
   const [isInWishlist, setIsInWishlist] = useState(false)
 
   // --- 3. DATA NORMALIZATION ---
-  const rawProduct = fetchedProduct?.data; 
+  const rawProduct = fetchedProduct?.data;
   const product = rawProduct ? {
     id: rawProduct.id,
     name: rawProduct.name,
@@ -66,9 +66,18 @@ export default function ProductDetailPage() {
 
   useEffect(() => {
     if (product) {
-        if (product.colors.length > 0 && !selectedColor) setSelectedColor(product.colors[0].name);
+      // 1. Set initial Color
+      if (product.colors.length > 0 && !selectedColor) {
+        setSelectedColor(product.colors[0].name);
+      }
+
+      // 2. Set initial Size
+      // Note: 'sizes' are strings, so we use product.sizes[0], not .name
+      if (product.sizes.length > 0 && !selectedSize) {
+        setSelectedSize(product.sizes[0]);
+      }
     }
-  }, [product]);
+  }, [product]); // ✅ Added 'product' here so it runs when data loads
 
   // Check Wishlist Status (Only if logged in)
   useEffect(() => {
@@ -88,27 +97,30 @@ export default function ProductDetailPage() {
   // --- 5. AUTH CHECK HELPER ---
   const checkAuth = () => {
     if (!isAuthenticated) {
-        toast.error("Please login to continue");
-        router.push("/login"); // 👈 Redirect occurs here
-        return false;
+      toast.error("Please login to continue");
+      router.push("/login"); // 👈 Redirect occurs here
+      return false;
     }
     return true;
   };
 
   // --- 6. ACTION HANDLERS ---
 
-  const handleAddToCart = async (isBuyNow = false) => {
+  const handleAddToCart = async () => {
     // 1. Check Login First
     if (!checkAuth()) return;
 
     // 2. Validate Size Selection
     if (product?.sizes.length > 0 && !selectedSize) {
-        toast.error("Please select a size");
-        return;
+      toast.error("Please select a size");
+      return;
+    }
+    if (product?.colors.length > 0 && !selectedColor) {
+      toast.error("Please select a color");
+      return;
     }
 
-    if (isBuyNow) setIsBuyingNow(true);
-    else setIsAddingToCart(true);
+    setIsAddingToCart(true);
 
     try {
       await userService.addToCart({
@@ -118,17 +130,14 @@ export default function ProductDetailPage() {
         color: selectedColor
       });
 
-      if (isBuyNow) {
-        router.push("/checkout");
-      } else {
+  
         toast.success("Added to cart");
-      }
+      
     } catch (error) {
       console.error(error);
       toast.error("Failed to add to cart");
     } finally {
       setIsAddingToCart(false);
-      setIsBuyingNow(false);
     }
   }
 
@@ -154,29 +163,66 @@ export default function ProductDetailPage() {
     }
   }
 
+  const handleBuyNow = async () => {
+    if (!checkAuth()) return;
+
+    if (product?.sizes.length > 0 && !selectedSize) {
+      toast.error("Please select a size");
+      return;
+    }
+     if (product?.colors.length > 0 && !selectedColor) {
+      toast.error("Please select a color");
+      return;
+    }
+
+    setIsBuyingNow(true);
+    try {
+      // Create the item object for checkout
+      const directItem = {
+        id: product!.id,        // needed for display
+        productId: product!.id, // needed for backend
+        name: product!.name,
+        price: product!.price,
+        image: product!.images[0],
+        size: selectedSize || "N/A",
+        color: selectedColor || "N/A",
+        quantity: quantity
+      };
+
+      // Save to LocalStorage
+      localStorage.setItem("directCheckoutItem", JSON.stringify([directItem]));
+
+      // Redirect immediately
+      router.push("/checkout?mode=buy_now");
+    } catch (err) {
+      console.error(err);
+      toast.error("Error processing request");
+      setIsBuyingNow(false); // Only stop loading if we failed before redirect
+    }
+  }
   // --- RENDER ---
   if (isLoading) {
     return (
-        <div className="min-h-screen flex flex-col">
-            <Header />
-            <div className="flex-1 flex items-center justify-center">
-                <Loader2 className="animate-spin h-8 w-8 text-primary" />
-            </div>
-            <Footer />
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <div className="flex-1 flex items-center justify-center">
+          <Loader2 className="animate-spin h-8 w-8 text-primary" />
         </div>
+        <Footer />
+      </div>
     )
   }
 
   if (!product) {
-     return (
-        <div className="min-h-screen flex flex-col">
-            <Header />
-            <div className="flex-1 flex flex-col items-center justify-center gap-4">
-                <h2 className="text-2xl font-bold">Product not found</h2>
-                <Link href="/products" className="text-primary hover:underline">Return to Shop</Link>
-            </div>
-            <Footer />
+    return (
+      <div className="min-h-screen flex flex-col">
+        <Header />
+        <div className="flex-1 flex flex-col items-center justify-center gap-4">
+          <h2 className="text-2xl font-bold">Product not found</h2>
+          <Link href="/products" className="text-primary hover:underline">Return to Shop</Link>
         </div>
+        <Footer />
+      </div>
     )
   }
 
@@ -211,23 +257,22 @@ export default function ProductDetailPage() {
 
               {product.images.length > 1 && (
                 <div className="grid grid-cols-4 gap-4">
-                    {product.images.map((image:string, index:number) => (
+                  {product.images.map((image: string, index: number) => (
                     <button
-                        key={index}
-                        onClick={() => setSelectedImage(index)}
-                        className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all ${
-                        selectedImage === index ? "border-primary" : "border-transparent"
+                      key={index}
+                      onClick={() => setSelectedImage(index)}
+                      className={`relative aspect-square rounded-lg overflow-hidden border-2 transition-all ${selectedImage === index ? "border-primary" : "border-transparent"
                         }`}
                     >
-                        <Image
+                      <Image
                         src={image}
                         alt={`${product.name} ${index + 1}`}
                         fill
                         className="object-cover"
                         unoptimized
-                        />
+                      />
                     </button>
-                    ))}
+                  ))}
                 </div>
               )}
             </div>
@@ -255,50 +300,48 @@ export default function ProductDetailPage() {
               {/* Color Selection */}
               {product.colors.length > 0 && (
                 <div>
-                    <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center justify-between mb-3">
                     <Label className="font-semibold">Color</Label>
                     <span className="text-sm text-muted-foreground">{selectedColor}</span>
-                    </div>
-                    <div className="flex gap-3">
+                  </div>
+                  <div className="flex gap-3">
                     {product.colors.map((color: any) => (
-                        <button
+                      <button
                         key={color.name}
                         onClick={() => setSelectedColor(color.name)}
-                        className={`w-12 h-12 rounded-full border-2 transition-all flex items-center justify-center ${
-                            selectedColor === color.name ? "border-primary scale-110" : "border-gray-200"
-                        }`}
+                        className={`w-12 h-12 rounded-full border-2 transition-all flex items-center justify-center ${selectedColor === color.name ? "border-primary scale-110" : "border-gray-200"
+                          }`}
                         style={{ backgroundColor: color.hex }}
                         title={color.name}
-                        />
+                      />
                     ))}
-                    </div>
+                  </div>
                 </div>
               )}
 
               {/* Size Selection */}
               {product.sizes.length > 0 && (
                 <div>
-                    <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center justify-between mb-3">
                     <Label className="font-semibold">Size</Label>
                     <Link href="/size-guide" className="text-sm text-primary hover:underline">
-                        Size Guide
+                      Size Guide
                     </Link>
-                    </div>
-                    <div className="grid grid-cols-6 gap-2">
+                  </div>
+                  <div className="grid grid-cols-6 gap-2">
                     {product.sizes.map((size: string) => (
-                        <button
+                      <button
                         key={size}
                         onClick={() => setSelectedSize(size)}
-                        className={`py-3 rounded-md border-2 font-medium transition-all ${
-                            selectedSize === size
+                        className={`py-3 rounded-md border-2 font-medium transition-all ${selectedSize === size
                             ? "border-primary bg-primary text-primary-foreground"
                             : "border-border hover:border-primary"
-                        }`}
-                        >
+                          }`}
+                      >
                         {size}
-                        </button>
+                      </button>
                     ))}
-                    </div>
+                  </div>
                 </div>
               )}
 
@@ -329,7 +372,7 @@ export default function ProductDetailPage() {
                 <Button
                   size="lg"
                   className="flex-1 bg-primary hover:bg-primary/90"
-                  onClick={() => handleAddToCart(false)}
+                  onClick={() => handleAddToCart()}
                   disabled={isAddingToCart || isBuyingNow}
                 >
                   {isAddingToCart ? (
@@ -343,7 +386,7 @@ export default function ProductDetailPage() {
                 <Button
                   size="lg"
                   className="flex-1 bg-primary hover:bg-primary/90"
-                  onClick={() => handleAddToCart(true)}
+                  onClick={() => handleBuyNow()}
                   disabled={isAddingToCart || isBuyingNow}
                 >
                   {isBuyingNow ? (
@@ -353,18 +396,18 @@ export default function ProductDetailPage() {
                   )}
                   {isBuyingNow ? "Processing..." : "Buy Now"}
                 </Button>
-                
-                <Button 
-                    size="lg" 
-                    variant="outline"
-                    onClick={handleToggleWishlist}
-                    disabled={isWishlisting}
-                    className={isInWishlist ? "text-red-500 border-red-200 bg-red-50" : ""}
+
+                <Button
+                  size="lg"
+                  variant="outline"
+                  onClick={handleToggleWishlist}
+                  disabled={isWishlisting}
+                  className={isInWishlist ? "text-red-500 border-red-200 bg-red-50" : ""}
                 >
                   {isWishlisting ? (
-                     <Loader2 className="h-5 w-5 animate-spin" />
+                    <Loader2 className="h-5 w-5 animate-spin" />
                   ) : (
-                     <Heart className={`h-5 w-5 ${isInWishlist ? "fill-current" : ""}`} />
+                    <Heart className={`h-5 w-5 ${isInWishlist ? "fill-current" : ""}`} />
                   )}
                 </Button>
               </div>
@@ -395,14 +438,14 @@ export default function ProductDetailPage() {
                 <TabsTrigger value="features">Features</TabsTrigger>
                 <TabsTrigger value="care">Care Instructions</TabsTrigger>
               </TabsList>
-              
+
               <TabsContent value="details" className="mt-6">
                 <Card>
                   <CardContent className="p-6">
                     <h3 className="font-bold text-lg mb-4">Product Details</h3>
                     <div className="space-y-2">
                       <p><span className="font-medium">Materials:</span> {product.materials}</p>
-                      <p><span className="font-medium">Fit:</span> Regular / True to size</p> 
+                      <p><span className="font-medium">Fit:</span> Regular / True to size</p>
                     </div>
                   </CardContent>
                 </Card>
