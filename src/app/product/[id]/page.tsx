@@ -130,9 +130,9 @@ export default function ProductDetailPage() {
         color: selectedColor
       });
 
-  
-        toast.success("Added to cart");
-      
+
+      toast.success("Added to cart");
+
     } catch (error) {
       console.error(error);
       toast.error("Failed to add to cart");
@@ -170,7 +170,7 @@ export default function ProductDetailPage() {
       toast.error("Please select a size");
       return;
     }
-     if (product?.colors.length > 0 && !selectedColor) {
+    if (product?.colors.length > 0 && !selectedColor) {
       toast.error("Please select a color");
       return;
     }
@@ -334,8 +334,8 @@ export default function ProductDetailPage() {
                         key={size}
                         onClick={() => setSelectedSize(size)}
                         className={`py-3 rounded-md border-2 font-medium transition-all ${selectedSize === size
-                            ? "border-primary bg-primary text-primary-foreground"
-                            : "border-border hover:border-primary"
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border hover:border-primary"
                           }`}
                       >
                         {size}
@@ -430,7 +430,6 @@ export default function ProductDetailPage() {
             </div>
           </div>
 
-          {/* Product Details Tabs (Unchanged) */}
           <div className="mt-16">
             <Tabs defaultValue="details" className="w-full">
               <TabsList className="w-full justify-start">
@@ -439,18 +438,48 @@ export default function ProductDetailPage() {
                 <TabsTrigger value="care">Care Instructions</TabsTrigger>
               </TabsList>
 
+              {/* 1. DETAILS TAB */}
               <TabsContent value="details" className="mt-6">
                 <Card>
                   <CardContent className="p-6">
                     <h3 className="font-bold text-lg mb-4">Product Details</h3>
                     <div className="space-y-2">
                       <p><span className="font-medium">Materials:</span> {product.materials}</p>
-                      <p><span className="font-medium">Fit:</span> Regular / True to size</p>
+                      <p><span className="font-medium">Gender:</span> {rawProduct?.gender || "Unisex"}</p>
+                      <p><span className="font-medium">Category:</span> {rawProduct?.category}</p>
                     </div>
                   </CardContent>
                 </Card>
               </TabsContent>
-              {/* ... other tabs ... */}
+
+              {/* 2. FEATURES TAB */}
+              <TabsContent value="features" className="mt-6">
+                <Card>
+                  <CardContent className="p-6">
+                    <h3 className="font-bold text-lg mb-4">Product Features</h3>
+                    <ul className="list-disc list-inside space-y-2 text-muted-foreground">
+                      {product.features.length > 0 ? (
+                        product.features.map((feature: string, i: number) => (
+                          <li key={i}>{feature}</li>
+                        ))
+                      ) : (
+                        <li>No features listed.</li>
+                      )}
+                    </ul>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* 3. CARE TAB */}
+              <TabsContent value="care" className="mt-6">
+                <Card>
+                  <CardContent className="p-6">
+                    <h3 className="font-bold text-lg mb-4">Care Instructions</h3>
+                    <p className="text-muted-foreground">{product.care}</p>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
             </Tabs>
           </div>
         </div>
