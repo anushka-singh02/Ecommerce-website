@@ -1,6 +1,6 @@
 import { fetcher } from '@/lib/fetcher';
 // You might want to move these types to types/api.ts later
-import { ApiResponse, IProduct, IUser , DashboardStats } from '@/types/api';
+import { ApiResponse, IProduct, IUser, DashboardStats } from '@/types/api';
 
 export const adminService = {
   // --- DASHBOARD & METRICS ---
@@ -73,7 +73,7 @@ export const adminService = {
   },
 
   // PUT /orders/:id/status
-  updateOrderStatus: async (id: string, status: string) => {
+  updateOrderStatus: async (id: string, status: string, type: string) => {
     return fetcher<ApiResponse<any>>(`/admin/orders/${id}/status`, {
       method: 'PUT',
       body: JSON.stringify({ status }),
@@ -91,9 +91,22 @@ export const adminService = {
   // --- CUSTOMERS ---
 
   // GET /customers
+  // src/lib/api/admin.ts
+
+  // ... other imports
+
+  // ... existing methods (getOrders, getProductById, etc.)
+
   getCustomers: async () => {
+    // Assuming 'fetcher' is your custom fetch wrapper
     return fetcher<ApiResponse<IUser[]>>('/admin/customers');
   },
+
+  // You might want this for the detail page later
+  getCustomerById: async (id: string) => {
+    return fetcher<ApiResponse<IUser>>(`/admin/customers/${id}`);
+  },
+
 
   // PUT /customers/:id/notes
   updateCustomerNotes: async (id: string, notes: string) => {

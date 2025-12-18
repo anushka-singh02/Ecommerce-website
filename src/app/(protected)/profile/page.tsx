@@ -18,7 +18,7 @@ import { Separator } from "@/components/ui/separator"
 import {
   User, Package, MapPin, Heart, Settings, LogOut,
   ShoppingBag, ShoppingCart, Trash2, Loader2, Plus, X,
-  Phone, Briefcase, Calendar, CreditCard, ExternalLink
+  Phone, Briefcase, Calendar, CreditCard, ExternalLink, Banknote
 } from "lucide-react"
 
 // --- TYPES ---
@@ -27,7 +27,8 @@ interface Order {
   createdAt: string
   total?: number
   totalAmount?: number
-  status: string
+  paymentStatus: string
+  orderStatus: string
   paymentMethod?: string // ✅ Added
   shippingAddress?: any // ✅ Added
   items: Array<{
@@ -331,8 +332,8 @@ export default function ProfilePage() {
                                   <p className="text-sm text-muted-foreground"> + {order.items.length - 1} other items </p>
                                 )}
                               </div>
-                              <span className={`px-3 py-1 rounded-full text-xs font-semibold capitalize ${(order.status || "").toUpperCase() === "DELIVERED" ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700"
-                                }`}> {(order.status || "Pending").toLowerCase()} </span>
+                              <span className={`px-3 py-1 rounded-full text-xs font-semibold capitalize ${(order.orderStatus || "").toUpperCase() === "DELIVERED" ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700"
+                                }`}> {(order.orderStatus || "Pending").toLowerCase()} </span>
                             </div>
                             <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
                               <span>Order <span className="font-medium text-black">#{order.id.slice(0, 8)}</span></span>
@@ -343,8 +344,8 @@ export default function ProfilePage() {
                           <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto mt-2 sm:mt-0 gap-3">
                             <span className="font-bold text-xl">${safeTotal}</span>
                             {/* ✅ BUTTON NOW OPENS MODAL */}
-                            <Button 
-                              variant="outline" 
+                            <Button
+                              variant="outline"
                               className="w-full sm:w-auto"
                               onClick={() => handleViewOrder(order)}
                             >
@@ -538,35 +539,54 @@ export default function ProfilePage() {
       {isOrderModalOpen && selectedOrder && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
           <Card className="w-full max-w-2xl relative animate-in fade-in zoom-in duration-200 max-h-[90vh] flex flex-col">
-            <button 
-              onClick={() => setIsOrderModalOpen(false)} 
+            <button
+              onClick={() => setIsOrderModalOpen(false)}
               className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100 transition-colors z-10"
             >
               <X className="h-5 w-5" />
             </button>
-
             <CardHeader className="border-b">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
-                  <CardTitle className="flex items-center gap-2">
+                  <CardTitle className="flex items-center gap-2 flex-wrap">
                     Order #{selectedOrder.id.slice(0, 8)}
-                    <span className={`px-2 py-0.5 rounded-full text-xs font-semibold uppercase ${
-                      selectedOrder.status === 'DELIVERED' ? 'bg-green-100 text-green-700' : 
-                      selectedOrder.status === 'CANCELLED' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
-                    }`}>
-                      {selectedOrder.status}
+
+                    {/* 1. ORDER STATUS (Logistics) */}
+                    <span
+                      title="Order Status"
+                      className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase border ${selectedOrder.orderStatus === 'DELIVERED' ? 'bg-green-50 text-green-700 border-green-200' :
+                          selectedOrder.orderStatus === 'CANCELLED' ? 'bg-red-50 text-red-700 border-red-200' :
+                            'bg-blue-50 text-blue-700 border-blue-200'
+                        }`}>
+                      <Package className="h-3.5 w-3.5" />
+                      {selectedOrder.orderStatus}
                     </span>
+
+                    {/* 2. PAYMENT STATUS (Money) */}
+                    <span
+                      title="Payment Status"
+                      className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase border ${selectedOrder.paymentStatus === 'PAID' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
+                          selectedOrder.paymentStatus === 'FAILED' ? 'bg-red-50 text-red-700 border-red-200' :
+                            selectedOrder.paymentStatus === 'REFUNDED' ? 'bg-purple-50 text-purple-700 border-purple-200' :
+                              'bg-amber-50 text-amber-700 border-amber-200'
+                        }`}>
+                      <Banknote className="h-3.5 w-3.5" />
+                      {selectedOrder.paymentStatus}
+                    </span>
+
                   </CardTitle>
                   <CardDescription className="flex items-center gap-2 mt-1">
                     <Calendar className="h-3 w-3" />
                     {new Date(selectedOrder.createdAt).toLocaleDateString()} at {new Date(selectedOrder.createdAt).toLocaleTimeString()}
                   </CardDescription>
                 </div>
+
+                {/* Payment Method Badge (unchanged) */}
                 {selectedOrder.paymentMethod && (
-                   <div className="flex items-center gap-2 text-sm text-muted-foreground bg-gray-50 px-3 py-1 rounded-md">
-                      <CreditCard className="h-4 w-4" />
-                      {selectedOrder.paymentMethod}
-                   </div>
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground bg-gray-50 px-3 py-1 rounded-md border border-gray-100">
+                    <CreditCard className="h-4 w-4" />
+                    <span className="font-medium">{selectedOrder.paymentMethod}</span>
+                  </div>
                 )}
               </div>
             </CardHeader>
@@ -574,25 +594,25 @@ export default function ProfilePage() {
             {/* Scrollable Content */}
             <div className="overflow-y-auto p-0 flex-1">
               <CardContent className="space-y-6 pt-6">
-                
+
                 {/* Product List */}
                 <div className="space-y-4">
                   <h3 className="font-semibold text-sm text-gray-500 uppercase tracking-wider">Items Ordered</h3>
                   {selectedOrder.items.map((item, idx) => (
                     <div key={idx} className="flex gap-4 items-start">
                       <div className="relative h-16 w-16 bg-gray-100 rounded-md overflow-hidden border flex-shrink-0">
-                         {item.product.images?.[0] ? (
-                            <Image src={item.product.images[0]} alt={item.product.name} fill className="object-cover" />
-                         ) : (
-                            <div className="w-full h-full flex items-center justify-center text-xs text-gray-400">No Img</div>
-                         )}
+                        {item.product.images?.[0] ? (
+                          <Image src={item.product.images[0]} alt={item.product.name} fill className="object-cover" />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center text-xs text-gray-400">No Img</div>
+                        )}
                       </div>
                       <div className="flex-1">
                         <h4 className="font-medium text-sm line-clamp-2">{item.product.name}</h4>
                         <p className="text-xs text-muted-foreground mt-1">Qty: {item.quantity || 1}</p>
                       </div>
                       <div className="font-semibold text-sm">
-                        ${formatPrice((item.price || 0) * (item.quantity ))}
+                        ${formatPrice((item.price || 0) * (item.quantity))}
                       </div>
                     </div>
                   ))}
