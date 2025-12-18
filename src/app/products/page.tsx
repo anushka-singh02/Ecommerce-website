@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react" // Added useEffect
+import { useSearchParams } from "next/navigation" // ✅ Added to read URL
 import Link from "next/link"
 import Image from "next/image"
 import { Header } from "@/components/Header"
@@ -12,49 +13,79 @@ import { Label } from "@/components/ui/label"
 import { Slider } from "@/components/ui/slider"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
-import { SlidersHorizontal, Loader2 } from "lucide-react" // Added Loader2 for button state
+import { SlidersHorizontal, Loader2 } from "lucide-react"
 
 import { useQuery } from "@tanstack/react-query"
 import { storeService } from "@/lib/api/store"
 
 export default function ProductsPage() {
-  // --- 1. DRAFT STATE (Updates instantly as user clicks, NO API call) ---
+  const searchParams = useSearchParams()
+
+  // --- 0. EXTRACT URL PARAMS ---
+  const urlSearch = searchParams.get("search") || ""
+  const urlGender = searchParams.get("gender")
+  const urlCategory = searchParams.get("category")
+  const urlSort = searchParams.get("sort") || "featured"
+
+  // --- 1. DRAFT STATE (Initialize with URL values) ---
   const [priceRange, setPriceRange] = useState([0, 200])
-  const [selectedCategories, setSelectedCategories] = useState<string[]>([])
-  const [selectedGenders, setSelectedGenders] = useState<string[]>([])
+  
+  // If URL has ?category=Tops, check that box initially
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(
+    urlCategory ? urlCategory.split(",") : []
+  )
+  const [selectedGenders, setSelectedGenders] = useState<string[]>(
+    urlGender ? urlGender.split(",") : []
+  )
   const [selectedColors, setSelectedColors] = useState<string[]>([])
   const [selectedSizes, setSelectedSizes] = useState<string[]>([])
-  const [sortBy, setSortBy] = useState("featured") // Sort usually stays instant, but can be moved if desired
   
+  const [sortBy, setSortBy] = useState(urlSort)
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false)
 
-  // --- 2. ACTIVE STATE (Passed to API, updates ONLY on button click) ---
+  // --- 2. ACTIVE STATE (Initialize with URL values too) ---
   const [activeFilters, setActiveFilters] = useState({
-    categories: [] as string[],
-    gender: [] as string[],
+    search: urlSearch, // ✅ Added Search
+    categories: urlCategory ? urlCategory.split(",") : [],
+    gender: urlGender ? urlGender.split(",") : [],
     colors: [] as string[],
     sizes: [] as string[],
     priceRange: [0, 200],
   })
 
+  // ✅ SYNC: When URL changes (e.g. from Header search), update state
+  useEffect(() => {
+    const newSearch = searchParams.get("search") || ""
+    const newSort = searchParams.get("sort") || "featured"
+    
+    // Only update if it's different to prevent loops
+    if (activeFilters.search !== newSearch) {
+        setActiveFilters(prev => ({ ...prev, search: newSearch }))
+    }
+    if (sortBy !== newSort) {
+        setSortBy(newSort)
+    }
+  }, [searchParams])
+
   // --- 3. APPLY FUNCTION ---
   const handleApplyFilters = () => {
     setActiveFilters({
+      ...activeFilters, // Keep existing search query if any
       categories: selectedCategories,
       gender: selectedGenders,
       colors: selectedColors,
       sizes: selectedSizes,
       priceRange: priceRange,
     })
-    // Close mobile menu if open
     setMobileFiltersOpen(false) 
   }
 
-  // --- 4. DATA FETCHING (Depends on ACTIVE STATE) ---
+  // --- 4. DATA FETCHING ---
   const { data: rawData, isLoading, isFetching } = useQuery({
-    // Only refetch when 'activeFilters' or 'sortBy' changes
     queryKey: ["products-page", activeFilters, sortBy], 
     queryFn: () => storeService.getAllProducts({
+      // ✅ Pass search param
+      search: activeFilters.search, 
       category: activeFilters.categories.length ? activeFilters.categories.join(",") : undefined,
       gender: activeFilters.gender.length ? activeFilters.gender.join(",") : undefined,
       colors: activeFilters.colors.length ? activeFilters.colors.join(",") : undefined,
@@ -191,7 +222,7 @@ export default function ProductsPage() {
         <Button 
             className="w-full" 
             onClick={handleApplyFilters}
-            disabled={isFetching} // Show disabled state while loading
+            disabled={isFetching}
         >
             {isFetching ? (
                 <>
@@ -213,7 +244,10 @@ export default function ProductsPage() {
       <main className="flex-1 pb-36 lg:pb-0">
         <div className="bg-muted/30 py-12">
           <div className="container mx-auto px-4">
-            <h1 className="text-4xl font-bold mb-4">All Products</h1>
+            <h1 className="text-4xl font-bold mb-4">
+                {/* ✅ Dynamic Title based on Search */}
+                {activeFilters.search ? `Results for "${activeFilters.search}"` : "All Products"}
+            </h1>
             <p className="text-muted-foreground">Discover our full range of premium athletic wear</p>
           </div>
         </div>
@@ -274,15 +308,14 @@ export default function ProductsPage() {
                 <div className="text-center py-20 text-gray-500">
                     <p className="text-lg">No products found matching your filters.</p>
                     <Button variant="link" onClick={() => {
-                        // Clear draft state
                         setSelectedCategories([]);
                         setSelectedGenders([]);
                         setPriceRange([0, 200]);
                         setSelectedColors([]);
                         setSelectedSizes([]);
                         
-                        // Clear active state (triggers refetch)
                         setActiveFilters({
+                            search: "", // Clear search too
                             categories: [],
                             gender: [],
                             colors: [],
