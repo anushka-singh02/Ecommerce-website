@@ -243,7 +243,7 @@ export default function ProductsPage() {
 
       <main className="flex-1 pb-36 lg:pb-0">
         <div className="bg-muted/30 py-12">
-          <div className="container mx-auto px-4">
+          <div className="container mx-auto px-2">
             <h1 className="text-4xl font-bold mb-4">
                 {/* ✅ Dynamic Title based on Search */}
                 {activeFilters.search ? `Results for "${activeFilters.search}"` : "All Products"}
@@ -252,7 +252,7 @@ export default function ProductsPage() {
           </div>
         </div>
 
-        <div className="container mx-auto px-4 py-8">
+        <div className="container mx-auto px-2 py-8">
           <div className="flex gap-8">
             <aside className="hidden lg:block w-64 flex-shrink-0">
               <div className="sticky top-24 max-h-[calc(100vh-120px)] overflow-y-auto pr-2">

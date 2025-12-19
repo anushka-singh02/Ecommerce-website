@@ -68,13 +68,13 @@ export default function Home() {
               </p>
               <div className="flex gap-4">
                 <Link href="/products">
-                  <Button size="lg" className="bg-primary hover:bg-primary/90 text-white">
+                  <Button size="lg" className="bg-black hover:bg-black/90 text-white border-black">
                     Shop Now <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
                 </Link>
                 <Link href="/products">
                   <Button size="lg" variant="outline" className="bg-black hover:bg-black/90 text-white border-black">
-                    Explore Collections
+                    Explore Collections <ArrowRight className="ml-2 h-5 w-5" />
                   </Button>
                 </Link>
               </div>
@@ -84,21 +84,33 @@ export default function Home() {
 
         {/* Bestsellers Section */}
         <section className="py-20">
-          <div className="container mx-auto px-4">
-            <div className="flex justify-between items-end mb-12">
-              <div>
-                <h2 className="text-4xl font-bold mb-4">Bestsellers</h2>
-                <p className="text-xl text-muted-foreground">
-                  Our most loved products
-                </p>
-              </div>
-              <Link href="/products">
-                <Button variant="outline" className="hidden md:flex items-center gap-2">
-                  View All <ArrowRight className="h-4 w-4" />
-                </Button>
-              </Link>
-            </div>
-
+          <div className="container mx-auto px-2">
+            <div className="md:hidden mb-6">
+      <div className="w-full bg-[#e9eaec] py-3 text-center">
+        <h2 className="text-black font-bold text-3xl tracking-wide">
+          BESTSELLERS
+        </h2>
+      </div>
+    </div>
+    <div className="flex justify-between items-end mb-12">
+      <div>
+        {/* Hide original heading on mobile */}
+        <h2 className="hidden md:block text-4xl font-bold mb-4">
+          Bestsellers
+        </h2>
+        <p className="hidden text-xl text-muted-foreground">
+          Our most loved products
+        </p>
+      </div>
+      <Link href="/products">
+        <Button
+          variant="outline"
+          className="hidden md:flex items-center gap-2"
+        >
+          View All <ArrowRight className="h-4 w-4" />
+        </Button>
+      </Link>
+    </div>
             {bestsellerLoading ? (
                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
                  {[1,2,3,4].map(i => <div key={i} className="h-[350px] bg-gray-100 rounded-xl animate-pulse" />)}
@@ -151,20 +163,32 @@ export default function Home() {
 
         {/* Featured Products (Trending Now) */}
         <section className="py-20 bg-muted/30">
-          <div className="container mx-auto px-4">
-            <div className="flex justify-between items-end mb-12">
-              <div>
-                <h2 className="text-4xl font-bold mb-4">Trending Now</h2>
-                <p className="text-xl text-muted-foreground">
-                  Our most popular products this season
-                </p>
-              </div>
+          <div className="container mx-auto px-2">
+            
+            <div className="md:hidden mb-6">
+      <div className="w-full bg-[#e9eaec] py-3 text-center">
+        <h2 className="text-black font-bold text-3xl tracking-wide">
+          TRENDING NOW
+        </h2>
+      </div>
+    </div>
+    <div className="flex justify-between items-end mb-12">
+      <div>
+        {/* Hide original heading on mobile */}
+        <h2 className="hidden md:block text-4xl font-bold mb-4">
+          Bestsellers
+        </h2>
+        <p className="hidden text-xl text-muted-foreground">
+          Our most popular products this season
+        </p>
+      </div>
               <Link href="/products">
                 <Button variant="outline" className="hidden md:flex items-center gap-2">
                   View All <ArrowRight className="h-4 w-4" />
                 </Button>
               </Link>
             </div>
+            
 
             {featuredLoading ? (
                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
@@ -220,7 +244,7 @@ export default function Home() {
         {/* Only show if NOT loading and NOT authenticated */}
         {/* CTA Banner - ALWAYS VISIBLE (Content swaps based on auth) */}
         {!isLoading && (
-          <section className="py-20 bg-gradient-to-r from-primary to-secondary text-white">
+          <section className="py-20 bg-[#dee2e6] text-[#212529]">
             <div className="container mx-auto px-4 text-center">
               
               {/* CONTENT SWITCHER */}
@@ -234,7 +258,7 @@ export default function Home() {
                     Check out the latest drops added just for you.
                   </p>
                   <Link href="/products?sort=newest">
-                    <Button size="lg" variant="secondary" className="bg-white text-primary hover:bg-white/90">
+                    <Button size="lg" variant="secondary" className="bg-[#212529] text-primary hover:bg-white/90">
                       Shop New Arrivals
                     </Button>
                   </Link>

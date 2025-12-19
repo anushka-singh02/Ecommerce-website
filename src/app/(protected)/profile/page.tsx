@@ -220,7 +220,7 @@ export default function ProfilePage() {
                   <TabsTrigger
                     key={tab}
                     value={tab}
-                    className="capitalize w-full justify-start gap-3 px-4 py-3 data-[state=active]:bg-white data-[state=active]:shadow-sm border border-transparent data-[state=active]:border-border"
+                    className="capitalize w-full justify-start gap-3 px-4 py-3 data-[state=active]:bg-white data-[state=active]:text-black data-[state=active]:shadow-sm border border-transparent data-[state=active]:border-border"
                   >
                     {tab === 'overview' && <User className="h-4 w-4" />}
                     {tab === 'orders' && <Package className="h-4 w-4" />}

@@ -53,50 +53,82 @@ async function onSubmit(data: any) {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center px-4 bg-white">
-      <div className="w-full max-w-md">
-        {/* Brand */}
-        <h1 className="text-3xl font-bold text-center mb-8 tracking-wide">
-          raawr
-        </h1>
+  <div className="
+    min-h-screen flex items-center justify-center px-4
+    bg-black md:bg-white
+  ">
+    <div className="w-full max-w-md">
+      
+      {/* Brand */}
+      <h1 className="
+        text-3xl font-bold text-center mb-8 tracking-wide
+        text-white md:text-black
+      ">
+        raawr
+      </h1>
 
-        {/* Card */}
-        <div className="border rounded-xl p-6 sm:p-8 shadow-sm">
-          <h2 className="text-xl font-semibold mb-1">Sign in</h2>
-          <p className="text-sm text-gray-500 mb-6">
-            Welcome back. Please enter your details.
-          </p>
+      {/* Card */}
+      <div className="
+        rounded-xl p-6 sm:p-8 shadow-sm
+        bg-[#121212] border border-gray-700
+        md:bg-white md:border
+      ">
+        <h2 className="text-xl font-semibold mb-1 text-white md:text-black">
+          Sign in
+        </h2>
 
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <input
-              {...form.register("email")}
-              placeholder="Email address"
-              className="w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-black"
-            />
+        <p className="text-sm mb-6 text-gray-400 md:text-gray-500">
+          Welcome back. Please enter your details.
+        </p>
 
-            <input
-              {...form.register("password")}
-              type="password"
-              placeholder="Password"
-              className="w-full border rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-black"
-            />
+        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+          <input
+            {...form.register("email")}
+            placeholder="Email address"
+            className="
+              w-full rounded-md px-3 py-2
+              bg-black border border-gray-600 text-white
+              focus:outline-none focus:ring-2 focus:ring-white
+              md:bg-white md:border md:text-black md:focus:ring-black
+            "
+          />
 
-            <button
-              type="submit"
-              className="w-full bg-black text-white py-2 rounded-md hover:bg-gray-800 transition"
-            >
-              Sign in
-            </button>
-          </form>
+          <input
+            {...form.register("password")}
+            type="password"
+            placeholder="Password"
+            className="
+              w-full rounded-md px-3 py-2
+              bg-black border border-gray-600 text-white
+              focus:outline-none focus:ring-2 focus:ring-white
+              md:bg-white md:border md:text-black md:focus:ring-black
+            "
+          />
 
-          <p className="text-sm text-center mt-6">
-            Don’t have an account?{" "}
-            <Link href="/signup" className="underline font-medium">
-              Sign up
-            </Link>
-          </p>
-        </div>
+          <button
+            type="submit"
+            className="
+              w-full py-2 rounded-md transition
+              bg-white text-black hover:bg-gray-200
+              md:bg-black md:text-white md:hover:bg-gray-800
+            "
+          >
+            Sign in
+          </button>
+        </form>
+
+        <p className="text-sm text-center mt-6 text-gray-400 md:text-black">
+          Don’t have an account?{" "}
+          <Link
+            href="/signup"
+            className="underline font-medium text-white md:text-black"
+          >
+            Sign up
+          </Link>
+        </p>
       </div>
     </div>
-  )
+  </div>
+)
+
 }

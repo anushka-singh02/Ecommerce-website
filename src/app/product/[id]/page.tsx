@@ -244,7 +244,7 @@ export default function ProductDetailPage() {
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
             {/* Images */}
             <div className="space-y-4">
-              <div className="relative aspect-square rounded-lg overflow-hidden bg-muted border border-gray-100">
+              <div className="relative aspect-square rounded-lg overflow-hidden bg-muted border ">
                 <Image
                   src={product.images[selectedImage]}
                   alt={product.name}

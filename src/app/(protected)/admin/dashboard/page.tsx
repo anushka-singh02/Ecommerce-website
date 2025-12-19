@@ -51,7 +51,7 @@ export default function Dashboard() {
 
   return (
     <div>
-      <h1 className="text-3xl font-bold mb-6">Dashboard</h1>
+      <h1 className="text-3xl font-bold mb-6 text-black">Dashboard</h1>
 
       {/* Dynamic Cards Loop */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
