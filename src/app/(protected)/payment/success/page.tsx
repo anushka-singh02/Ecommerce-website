@@ -3,71 +3,80 @@
 import { useEffect, Suspense } from "react"
 import Link from "next/link"
 import { useSearchParams, useRouter } from "next/navigation"
-import { CheckCircle, Home, Package, Loader2 } from "lucide-react"
+import { CheckCircle, Home, Package, Loader2, Copy } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Header } from "@/components/Header"
 import { Footer } from "@/components/Footer"
-import { userService } from "@/lib/api/user"
 import toast from "react-hot-toast"
 
 function SuccessContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
-  const paymentId = searchParams.get("payment_id")
+  
+  // ✅ 1. Handle all possible param names (PayU uses 'id', COD uses 'orderId')
+  const referenceId = searchParams.get("id") || searchParams.get("orderId") || searchParams.get("payment_id")
 
   useEffect(() => {
-    if (!paymentId) {
-      // If someone tries to access this page without a payment ID, kick them out
+    if (!referenceId) {
+      // If accessed without an ID, redirect home
       router.push("/")
-    } else {
-      // ✅ OPTIONAL: Clear the cart automatically on success
-      const clearCartOnSuccess = async () => {
-        try {
-          await userService.clearCart()
-        } catch (error) {
-          console.error("Failed to clear cart", error)
-        }
-      }
-      clearCartOnSuccess()
-    }
-  }, [paymentId, router])
+    } 
+    // Note: We removed the clearCart() call here because the Backend now handles it 
+    // automatically upon successful payment or COD order creation.
+  }, [referenceId, router])
 
-  if (!paymentId) return null
+  const copyToClipboard = () => {
+    if (referenceId) {
+      navigator.clipboard.writeText(referenceId)
+      toast.success("Order ID copied!")
+    }
+  }
+
+  if (!referenceId) return null
 
   return (
     <Card className="w-full max-w-md text-center border-green-200 shadow-lg animate-in fade-in zoom-in duration-300">
       <CardHeader>
         <div className="flex justify-center mb-4">
-          <div className="rounded-full bg-green-100 p-4 shadow-sm">
+          <div className="rounded-full bg-green-100 p-4 shadow-sm animate-bounce-slow">
             <CheckCircle className="h-16 w-16 text-green-600" />
           </div>
         </div>
-        <CardTitle className="text-2xl font-bold text-green-700">Payment Successful!</CardTitle>
+        <CardTitle className="text-2xl font-bold text-green-700">Order Placed Successfully!</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <p className="text-muted-foreground">
-          Thank you for your purchase. Your order has been placed successfully.
+          Thank you for your purchase. We have received your order and it is being processed.
         </p>
         
-        <div className="bg-muted/50 p-4 rounded-lg border border-gray-100">
+        <div className="bg-muted/50 p-4 rounded-lg border border-gray-100 relative group">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
-            Transaction ID
+            Order Reference
           </p>
-          <p className="font-mono text-sm font-medium text-gray-800 break-all">
-            {paymentId}
-          </p>
+          <div className="flex items-center justify-center gap-2">
+            <p className="font-mono text-sm font-medium text-gray-800 break-all">
+              {referenceId}
+            </p>
+            <button 
+              onClick={copyToClipboard}
+              className="p-1 hover:bg-gray-200 rounded transition text-gray-500"
+              title="Copy ID"
+            >
+              <Copy className="h-3 w-3" />
+            </button>
+          </div>
         </div>
 
         <p className="text-sm text-muted-foreground">
-          You can track your order status in your profile.
+          You will receive an email confirmation shortly.
         </p>
       </CardContent>
       <CardFooter className="flex flex-col gap-3">
-        <Link href="/profile" className="w-full">
+        <Link href={`/profile`} className="w-full">
           <Button className="w-full" variant="outline">
             <Package className="mr-2 h-4 w-4" />
-            View Order
+            View Order Details
           </Button>
         </Link>
         <Link href="/" className="w-full">

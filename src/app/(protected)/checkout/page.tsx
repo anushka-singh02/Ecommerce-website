@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-// ✅ Import useSearchParams
 import { useRouter, useSearchParams } from "next/navigation"
 import Image from "next/image"
 import { Header } from "@/components/Header"
@@ -13,12 +12,13 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ShoppingBag, Lock, CreditCard, Banknote, Loader2, Truck } from "lucide-react"
-import { createRazorpayOrder, verifyRazorpayPayment } from "@/lib/api/payment"
-import { RazorpayPaymentResponse } from "@/lib/razorpay.types"
 import toast from "react-hot-toast"
-import { loadRazorpayScript } from "@/lib/utils"
 import { useAuthStore } from "@/store/useAuthStore"
 import { userService } from "@/lib/api/user"
+import { paymentService } from "@/lib/api/payment" // ✅ UPDATED IMPORT
+
+// --- PAYU CONFIG ---
+const PAYU_ACTION_URL = "https://test.payu.in/_payment"; // Use https://secure.payu.in/_payment for Prod
 
 // --- TYPES ---
 interface CartItem { id: string; name: string; price: number; image: string; size: string; color: string; quantity: number; }
@@ -29,7 +29,6 @@ interface CheckoutFormData {
 
 export default function CheckoutPage() {
   const router = useRouter()
-  // ✅ 1. Get Query Params to check mode
   const searchParams = useSearchParams()
   const isBuyNowMode = searchParams.get("mode") === "buy_now"
 
@@ -40,7 +39,6 @@ export default function CheckoutPage() {
   const [cartItems, setCartItems] = useState<CartItem[]>([])
   const [savedAddresses, setSavedAddresses] = useState<Address[]>([])
 
-  // Payment Method State
   const [paymentMethod, setPaymentMethod] = useState<"ONLINE" | "COD">("ONLINE")
 
   const [formData, setFormData] = useState<CheckoutFormData>({
@@ -53,37 +51,30 @@ export default function CheckoutPage() {
       router.replace("/login")
       return
     }
-    // ✅ Add isBuyNowMode to dependency array so it refreshes if mode changes
     if (isAuthenticated) fetchCheckoutData()
   }, [isAuthenticated, authLoading, router, isBuyNowMode])
 
   const fetchCheckoutData = async () => {
     setDataLoading(true)
     try {
-      // 1. Fetch Addresses (Always needed)
       const addressData = await userService.getAddresses().catch(() => [])
       setSavedAddresses(addressData as Address[])
 
-      // ✅ 2. DECIDE SOURCE: LocalStorage (Buy Now) vs DB Cart (Standard)
       if (isBuyNowMode) {
         const storedItem = localStorage.getItem("directCheckoutItem")
-        
         if (storedItem) {
           setCartItems(JSON.parse(storedItem))
         } else {
-          // Safety: If mode is buy_now but storage is empty, go back
           toast.error("Session expired")
           router.replace("/products")
           return
         }
       } else {
-        // --- Normal Cart Fetch ---
         const cartData = await userService.getCart()
         // @ts-ignore
         const mappedCart = (cartData?.items || []).map((item: any) => ({
           id: item.id,
-          // Store real product ID for logic, item ID for keys
-          productId: item.productId, 
+          productId: item.productId,
           name: item.product.name,
           price: Number(item.product.price),
           image: item.product.images?.[0] || "",
@@ -94,7 +85,6 @@ export default function CheckoutPage() {
         setCartItems(mappedCart)
       }
 
-      // 3. Pre-fill Form
       if (user) {
         const nameParts = user.name.split(" ")
         setFormData(prev => ({
@@ -159,84 +149,60 @@ export default function CheckoutPage() {
     try {
       setLoading(true)
 
-      // ✅ 3. PREPARE PAYLOAD
-      // If Buy Now: Send 'directItems'
-      // If Normal: Send nothing (backend uses cart)
       let payload: any = {
         address: formData,
         paymentMethod: paymentMethod
       };
 
       if (isBuyNowMode) {
-        // Map UI items back to simplified API structure
         payload.directItems = cartItems.map(item => ({
-             // Handle mapping: 'productId' comes from LS, 'item.id' might be cartItem id
-            productId: (item as any).productId || item.id, 
-            quantity: item.quantity,
-            size: item.size,
-            color: item.color
+          productId: (item as any).productId || item.id,
+          quantity: item.quantity,
+          size: item.size,
+          color: item.color
         }));
       }
 
-      // 1. Create Order
-      const orderData: any = await createRazorpayOrder(payload)
+      // ✅ 1. Call API using Payment Service
+      // The fetcher returns the parsed JSON directly (e.g., { success: true, ... })
+      const data = await paymentService.createOrder(payload);
 
-      if (!orderData || !orderData.orderId && !orderData.id) {
+      if (!data || !data.success) {
         throw new Error("Failed to create order")
       }
 
+      // ✅ CLEAR STORAGE
+      if (isBuyNowMode) localStorage.removeItem("directCheckoutItem");
+
       // === SCENARIO A: CASH ON DELIVERY ===
-      if (orderData.mode === 'COD') {
-        // ✅ Clear LocalStorage if it was a direct buy
-        if(isBuyNowMode) localStorage.removeItem("directCheckoutItem");
-
+      if (paymentMethod === "COD") {
         toast.success("Order Placed Successfully!")
-        router.push(`/payment-success?orderId=${orderData.orderId}`)
+        router.push(`/payment/success?orderId=${data.orderId}`)
         return
       }
 
-      // === SCENARIO B: ONLINE PAYMENT ===
-      // 2. Load Razorpay Script
-      const isScriptLoaded = await loadRazorpayScript()
-      if (!isScriptLoaded) {
-        toast.error("Failed to load Payment Gateway")
-        setLoading(false)
-        return
+      // === SCENARIO B: ONLINE PAYMENT (PAYU) ===
+      else if (data.mode === 'ONLINE' && data.payuParams) {
+        const params = data.payuParams;
+
+        // Create hidden form
+        const form = document.createElement("form");
+        form.method = "POST";
+        form.action = PAYU_ACTION_URL;
+
+        // Add inputs
+        Object.keys(params).forEach(key => {
+          const input = document.createElement("input");
+          input.type = "hidden";
+          input.name = key;
+          input.value = params[key];
+          form.appendChild(input);
+        });
+
+        // Submit
+        document.body.appendChild(form);
+        form.submit();
       }
-
-      // 3. Open Razorpay
-      const options = {
-        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID!,
-        amount: orderData.amount,
-        currency: "INR",
-        name: "Raawr Store",
-        description: "Order Payment",
-        order_id: orderData.id,
-        prefill: {
-          name: `${formData.firstName} ${formData.lastName}`,
-          email: formData.email,
-          contact: formData.phone
-        },
-        theme: { color: "#000000" },
-        handler: async (response: RazorpayPaymentResponse) => {
-          try {
-            await verifyRazorpayPayment(response)
-            
-            // ✅ Clear LocalStorage on success
-            if(isBuyNowMode) localStorage.removeItem("directCheckoutItem");
-
-            toast.success("Payment Successful!")
-            router.push(`/payment-success?payment_id=${response.razorpay_payment_id}`)
-          } catch (error) {
-            console.error(error)
-            toast.error("Verification failed")
-          }
-        },
-        modal: { ondismiss: () => setLoading(false) },
-      }
-
-      const razorpay = new (window as any).Razorpay(options)
-      razorpay.open()
 
     } catch (err: any) {
       console.error(err)
@@ -246,11 +212,9 @@ export default function CheckoutPage() {
   }
 
   if (authLoading || dataLoading) return <div className="min-h-screen flex items-center justify-center"><Loader2 className="animate-spin h-8 w-8 text-primary" /></div>
-  
-  // Show empty state only if NOT loading and NO items
+
   if (!dataLoading && cartItems.length === 0) return <div className="min-h-screen flex flex-col items-center justify-center gap-4"><ShoppingBag className="h-16 w-16 text-muted-foreground" /><h2 className="text-2xl font-bold">Checkout is empty</h2><Button onClick={() => router.push("/products")}>Go Shopping</Button></div>
 
-  // Price Calc (Display Only)
   const subtotal = cartItems.reduce((sum, item) => sum + item.price * item.quantity, 0)
   const shipping = subtotal > 75 ? 0 : 10
   const tax = Math.round(subtotal * 0.18)
@@ -266,10 +230,10 @@ export default function CheckoutPage() {
               {isBuyNowMode ? "Buy Now Checkout" : "Checkout"}
             </h1>
             <div className="grid lg:grid-cols-3 gap-8">
-
+              {/* LEFT COLUMN: FORMS */}
               <div className="lg:col-span-2 space-y-6">
 
-                {/* ADDRESS SECTION */}
+                {/* ADDRESS */}
                 <Card>
                   <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle>Shipping Information</CardTitle>
@@ -328,46 +292,41 @@ export default function CheckoutPage() {
                   </CardContent>
                 </Card>
 
-                {/* ✅ PAYMENT METHOD SECTION (Compact & Responsive) */}
+                {/* PAYMENT METHOD */}
                 <Card>
                   <CardHeader className="pb-3">
                     <CardTitle className="text-base">Payment Method</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-
-                      {/* ONLINE BUTTON */}
                       <button
                         type="button"
                         onClick={() => setPaymentMethod("ONLINE")}
                         className={`flex items-center justify-center gap-2 px-3 py-3 rounded-lg border transition-all text-sm font-medium ${paymentMethod === "ONLINE"
-                            ? "border-black bg-black text-white shadow-md"
-                            : "border-input hover:border-gray-400 bg-white text-gray-700 hover:bg-gray-50"
+                          ? "border-black bg-black text-white shadow-md"
+                          : "border-input hover:border-gray-400 bg-white text-gray-700 hover:bg-gray-50"
                           }`}
                       >
                         <CreditCard className="h-4 w-4" />
                         <span>Online Payment</span>
                       </button>
-
-                      {/* COD BUTTON */}
                       <button
                         type="button"
                         onClick={() => setPaymentMethod("COD")}
                         className={`flex items-center justify-center gap-2 px-3 py-3 rounded-lg border transition-all text-sm font-medium ${paymentMethod === "COD"
-                            ? "border-black bg-black text-white shadow-md"
-                            : "border-input hover:border-gray-400 bg-white text-gray-700 hover:bg-gray-50"
+                          ? "border-black bg-black text-white shadow-md"
+                          : "border-input hover:border-gray-400 bg-white text-gray-700 hover:bg-gray-50"
                           }`}
                       >
                         <Banknote className="h-4 w-4" />
                         <span>Cash on Delivery</span>
                       </button>
-
                     </div>
                   </CardContent>
                 </Card>
               </div>
 
-              {/* ORDER SUMMARY */}
+              {/* RIGHT COLUMN: SUMMARY */}
               <div className="lg:col-span-1">
                 <Card className="sticky top-24">
                   <CardHeader><CardTitle className="flex gap-2"><ShoppingBag className="h-5 w-5" /> Order Summary</CardTitle></CardHeader>
@@ -395,7 +354,6 @@ export default function CheckoutPage() {
                       <div className="flex justify-between text-lg font-bold"><span>Total</span><span>${total.toFixed(2)}</span></div>
                     </div>
 
-                    {/* PAY BUTTON */}
                     <Button className="w-full" size="lg" onClick={handlePayment} disabled={loading}>
                       {loading ? (
                         <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Processing...</>
