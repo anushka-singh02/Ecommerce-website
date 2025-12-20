@@ -34,42 +34,72 @@ export default function ProductsPage() {
   const products = data?.data?.products || [];
 
   return (
-    <div>
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold">Products</h1>
-        <Link href="/admin/products/create" className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded shadow transition">
-          + Create Product
-        </Link>
-      </div>
+  <div>
+    {/* Header */}
+    <div className="flex justify-between items-center mb-6">
+      <h1 className="text-3xl text-black font-bold">Products</h1>
+      <Link
+        href="/admin/products/create"
+        className="bg-black hover:bg-[#1f3a4d] text-white px-4 py-2 rounded shadow transition"
+      >
+        + Create Product
+      </Link>
+    </div>
 
-      <div className="bg-white rounded-lg shadow overflow-hidden border border-gray-100">
+    {/* Table Container */}
+    <div className="bg-white rounded-lg shadow overflow-hidden border border-gray-100">
+      {/* Important for mobile fit */}
+      <div className="w-full overflow-x-auto">
         <table className="w-full text-left border-collapse">
           <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
-              <th className="px-6 py-3 text-sm font-medium text-gray-500 uppercase">Name</th>
-              <th className="px-6 py-3 text-sm font-medium text-gray-500 uppercase">Price</th>
-              <th className="px-6 py-3 text-sm font-medium text-gray-500 uppercase">Stock</th>
-              <th className="px-6 py-3 text-sm font-medium text-gray-500 uppercase text-right">Actions</th>
+              <th className="px-3 py-3 md:px-6 md:py-3 text-sm font-medium text-gray-500 uppercase">
+                Name
+              </th>
+              <th className="px-3 py-3 md:px-6 md:py-3 text-sm font-medium text-gray-500 uppercase">
+                Price
+              </th>
+              <th className="px-3 py-3 md:px-6 md:py-3 text-sm font-medium text-gray-500 uppercase">
+                Stock
+              </th>
+              {/* Hide Actions header on mobile */}
+              <th className="hidden md:table-cell px-6 py-3 text-sm font-medium text-gray-500 uppercase text-right">
+                Actions
+              </th>
             </tr>
           </thead>
+
           <tbody className="divide-y divide-gray-100">
             {products.map((p: any) => (
               <tr key={p.id} className="hover:bg-gray-50 transition">
-                <td className="px-6 py-4 font-medium text-gray-900">{p.name}</td>
-                <td className="px-6 py-4 text-gray-600">${Number(p.price).toFixed(2)}</td>
-                <td className="px-6 py-4">
-                  <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                    p.stock > 0 
-                      ? "bg-green-100 text-green-700" 
-                      : "bg-red-100 text-red-700"
-                  }`}>
+                {/* Name */}
+                <td className="px-3 py-3 md:px-6 md:py-4 font-medium text-gray-900 break-words max-w-[180px] md:max-w-none">
+                  {p.name}
+                </td>
+
+                {/* Price */}
+                <td className="px-3 py-3 md:px-6 md:py-4 text-gray-600">
+                  ₹{Number(p.price).toFixed(2)}
+                </td>
+
+                {/* Stock */}
+                <td className="px-3 py-3 md:px-6 md:py-4">
+                  <span
+                    className={`px-2 py-1 rounded text-xs font-semibold ${
+                      p.stock > 0
+                        ? "bg-green-100 text-green-700"
+                        : "bg-red-100 text-red-700"
+                    }`}
+                  >
                     {p.stock > 0 ? `${p.stock} in stock` : "Out of Stock"}
                   </span>
                 </td>
-                <td className="px-6 py-4 text-right">
-                  <Link 
-                    href={`/admin/products/${p.id}/edit`} 
-                    className="text-blue-600 hover:text-blue-800 font-medium text-sm"
+
+                {/* Actions */}
+                <td className="px-3 py-3 md:px-6 md:py-4 text-left md:text-right">
+                  <Link
+                    href={`/admin/products/${p.id}/edit`}
+                    className="text-[#284b63] hover:text-[#1f3a4d] font-medium text-sm"
                   >
                     Edit
                   </Link>
@@ -78,7 +108,7 @@ export default function ProductsPage() {
             ))}
           </tbody>
         </table>
-        
+
         {products.length === 0 && (
           <div className="p-8 text-center text-gray-500">
             No products found.
@@ -86,5 +116,7 @@ export default function ProductsPage() {
         )}
       </div>
     </div>
-  )
+  </div>
+)
+
 }

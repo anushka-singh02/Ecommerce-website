@@ -5,6 +5,7 @@ import Image from "next/image";
 import { Facebook, Instagram, Twitter, Youtube, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input"; // Ensure you have this component
+import whitelogo from "../../public/whitelogo.png"
 
 export function Footer() {
   const currentYear = new Date().getFullYear();
@@ -17,13 +18,27 @@ export function Footer() {
           {/* Brand & Socials */}
           <div className="col-span-2 lg:col-span-1">
             <Link href="/" className="inline-block relative h-10 w-32 mb-4">
+
+              {/* ================= MOBILE LOGO (White) ================= */}
+              {/* Visible on mobile, hidden on desktop */}
+              <Image
+                src={whitelogo}
+                alt="Raawr"
+                fill
+                className="object-contain md:hidden"
+              />
+
+              {/* ================= DESKTOP LOGO (Black) ================= */}
+              {/* Hidden on mobile, visible on desktop */}
               <Image
                 src="https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/render/image/public/document-uploads/raawrlogo-1764828536372.webp?width=8000&height=8000&resize=contain"
                 alt="Raawr"
                 fill
-                className="object-contain"
+                className="object-contain hidden md:block"
               />
+
             </Link>
+
             <p className="text-sm text-muted-foreground mb-6 max-w-xs">
               Premium athletic wear designed for performance and style. Elevate your workout experience with Raawr.
             </p>

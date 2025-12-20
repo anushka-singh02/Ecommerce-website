@@ -282,11 +282,11 @@ export default function ProductDetailPage() {
               <div>
                 <h1 className="text-4xl font-bold mb-4">{product.name}</h1>
                 <div className="flex items-center gap-3 mb-4">
-                  <span className="text-3xl font-bold">${product.price.toFixed(2)}</span>
+                  <span className="text-3xl font-bold">₹{product.price.toFixed(2)}</span>
                   {product.originalPrice && product.originalPrice > product.price && (
                     <>
                       <span className="text-xl text-muted-foreground line-through">
-                        ${product.originalPrice.toFixed(2)}
+                        ₹{product.originalPrice.toFixed(2)}
                       </span>
                       <Badge variant="destructive">
                         Save {Math.round(((product.originalPrice - product.price) / product.originalPrice) * 100)}%
@@ -422,7 +422,7 @@ export default function ProductDetailPage() {
                   <Truck className="h-5 w-5 text-primary mt-0.5" />
                   <div>
                     <p className="font-medium">Free Shipping</p>
-                    <p className="text-sm text-muted-foreground">On orders over $75</p>
+                    <p className="text-sm text-muted-foreground">On orders over ₹500</p>
                   </div>
                 </div>
                 {/* ... other features ... */}

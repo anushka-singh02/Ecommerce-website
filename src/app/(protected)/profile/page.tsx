@@ -342,7 +342,7 @@ export default function ProfilePage() {
                             </div>
                           </div>
                           <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto mt-2 sm:mt-0 gap-3">
-                            <span className="font-bold text-xl">${safeTotal}</span>
+                            <span className="font-bold text-xl">₹{safeTotal}</span>
                             {/* ✅ BUTTON NOW OPENS MODAL */}
                             <Button
                               variant="outline"
@@ -399,7 +399,7 @@ export default function ProfilePage() {
                           <CardContent className="p-4">
                             <h3 className="font-medium truncate text-base mb-1">{item.name}</h3>
                             <div className="flex items-center justify-between">
-                              <p className="font-bold text-lg">${formatPrice(item.price)}</p>
+                              <p className="font-bold text-lg">₹{formatPrice(item.price)}</p>
                               <Button variant="ghost" size="sm" className="h-8 px-2 text-primary">View</Button>
                             </div>
                           </CardContent>
@@ -612,7 +612,7 @@ export default function ProfilePage() {
                         <p className="text-xs text-muted-foreground mt-1">Qty: {item.quantity || 1}</p>
                       </div>
                       <div className="font-semibold text-sm">
-                        ${formatPrice((item.price || 0) * (item.quantity))}
+                        ₹{formatPrice((item.price || 0) * (item.quantity))}
                       </div>
                     </div>
                   ))}
@@ -639,7 +639,7 @@ export default function ProfilePage() {
               <div className="w-full space-y-3">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Subtotal</span>
-                  <span>${formatPrice(selectedOrder.total ?? selectedOrder.totalAmount)}</span>
+                  <span>₹{formatPrice(selectedOrder.total ?? selectedOrder.totalAmount)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Shipping</span>
@@ -648,7 +648,7 @@ export default function ProfilePage() {
                 <Separator />
                 <div className="flex justify-between font-bold text-lg">
                   <span>Total</span>
-                  <span>${formatPrice(selectedOrder.total ?? selectedOrder.totalAmount)}</span>
+                  <span>₹{formatPrice(selectedOrder.total ?? selectedOrder.totalAmount)}</span>
                 </div>
               </div>
             </CardFooter>

@@ -187,7 +187,7 @@ export function CartSidebar({ open, onClose }: CartSidebarProps) {
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground flex items-center gap-2">
                       <Truck className="h-4 w-4" />
-                      Add <span className="font-semibold text-foreground">${(75 - subtotal).toFixed(2)}</span> for free shipping
+                      Add <span className="font-semibold text-foreground">₹{(500 - subtotal).toFixed(2)}</span> for free shipping
                     </span>
                   </div>
                   <div className="h-2 sm:h-1.5 bg-muted rounded-full overflow-hidden">
@@ -259,7 +259,7 @@ export function CartSidebar({ open, onClose }: CartSidebarProps) {
                           </Button>
                         </div>
                         <span className="font-bold text-base sm:text-base">
-                          ${(item.price * item.quantity).toFixed(2)}
+                          ₹{(item.price * item.quantity).toFixed(2)}
                         </span>
                       </div>
                     </div>
@@ -273,18 +273,18 @@ export function CartSidebar({ open, onClose }: CartSidebarProps) {
               <div className="space-y-3 sm:space-y-2">
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Subtotal</span>
-                  <span className="font-medium">${subtotal.toFixed(2)}</span>
+                  <span className="font-medium">₹{subtotal.toFixed(2)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Shipping</span>
                   <span className={`font-medium ${shipping === 0 ? 'text-emerald-600' : ''}`}>
-                    {shipping === 0 ? "FREE" : `$${shipping.toFixed(2)}`}
+                    {shipping === 0 ? "FREE" : `₹${shipping.toFixed(2)}`}
                   </span>
                 </div>
                 <Separator className="my-2" />
                 <div className="flex justify-between text-xl sm:text-lg font-bold">
                   <span>Total</span>
-                  <span>${total.toFixed(2)}</span>
+                  <span>₹{total.toFixed(2)}</span>
                 </div>
               </div>
 

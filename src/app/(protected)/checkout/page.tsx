@@ -340,18 +340,18 @@ export default function CheckoutPage() {
                           <div className="flex-1">
                             <h4 className="font-medium text-sm truncate">{item.name}</h4>
                             <p className="text-xs text-muted-foreground">{item.color} / {item.size}</p>
-                            <p className="text-sm flex justify-between mt-1"><span className="text-muted-foreground">Qty: {item.quantity}</span><span className="font-medium">${(item.price * item.quantity).toFixed(2)}</span></p>
+                            <p className="text-sm flex justify-between mt-1"><span className="text-muted-foreground">Qty: {item.quantity}</span><span className="font-medium">₹{(item.price * item.quantity).toFixed(2)}</span></p>
                           </div>
                         </div>
                       ))}
                     </div>
                     <Separator />
                     <div className="space-y-2 text-sm">
-                      <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>${subtotal.toFixed(2)}</span></div>
-                      <div className="flex justify-between"><span className="text-muted-foreground">Shipping</span><span>{shipping === 0 ? "Free" : `$${shipping.toFixed(2)}`}</span></div>
-                      <div className="flex justify-between"><span className="text-muted-foreground">Tax (18%)</span><span>${tax.toFixed(2)}</span></div>
+                      <div className="flex justify-between"><span className="text-muted-foreground">Subtotal</span><span>₹{subtotal.toFixed(2)}</span></div>
+                      <div className="flex justify-between"><span className="text-muted-foreground">Shipping</span><span>{shipping === 0 ? "Free" : `₹${shipping.toFixed(2)}`}</span></div>
+                      <div className="flex justify-between"><span className="text-muted-foreground">Tax (18%)</span><span>₹{tax.toFixed(2)}</span></div>
                       <Separator />
-                      <div className="flex justify-between text-lg font-bold"><span>Total</span><span>${total.toFixed(2)}</span></div>
+                      <div className="flex justify-between text-lg font-bold"><span>Total</span><span>₹{total.toFixed(2)}</span></div>
                     </div>
 
                     <Button className="w-full" size="lg" onClick={handlePayment} disabled={loading}>
@@ -360,7 +360,7 @@ export default function CheckoutPage() {
                       ) : (
                         paymentMethod === "COD"
                           ? <><Truck className="mr-2 h-4 w-4" /> Place Order (COD)</>
-                          : <><Lock className="mr-2 h-4 w-4" /> Pay ${total.toFixed(2)}</>
+                          : <><Lock className="mr-2 h-4 w-4" /> Pay ₹{total.toFixed(2)}</>
                       )}
                     </Button>
                   </CardContent>

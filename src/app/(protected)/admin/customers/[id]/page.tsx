@@ -80,7 +80,7 @@ export default function CustomerDetail() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto p-8 my-8">
+    <div className="max-w-7xl mx-auto p-2 my-8">
 
       {/* --- HEADER --- */}
       <div className="mb-8">
@@ -142,14 +142,14 @@ export default function CustomerDetail() {
                   <div className="p-2 bg-white rounded shadow-sm text-green-600"><CreditCard className="h-4 w-4" /></div>
                   <span className="text-sm font-medium text-gray-600">Total Spent</span>
                 </div>
-                <span className="font-bold text-gray-900">${totalSpent.toFixed(2)}</span>
+                <span className="font-bold text-gray-900">₹{totalSpent.toFixed(2)}</span>
               </div>
               <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                 <div className="flex items-center gap-3">
                   <div className="p-2 bg-white rounded shadow-sm text-purple-600"><Banknote className="h-4 w-4" /></div>
                   <span className="text-sm font-medium text-gray-600">Avg. Order</span>
                 </div>
-                <span className="font-bold text-gray-900">${avgOrderValue.toFixed(2)}</span>
+                <span className="font-bold text-gray-900">₹{avgOrderValue.toFixed(2)}</span>
               </div>
             </div>
           </div>
@@ -157,72 +157,154 @@ export default function CustomerDetail() {
 
         {/* --- RIGHT COLUMN: ORDER HISTORY --- */}
         <div className="lg:col-span-2">
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50">
-              <h2 className="font-semibold text-gray-800">Order History</h2>
+  <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+    <div className="px-6 py-4 border-b border-gray-100 bg-gray-50/50">
+      <h2 className="font-semibold text-gray-800">Order History</h2>
+    </div>
+
+    {!customer.orders || customer.orders.length === 0 ? (
+      <div className="p-12 text-center text-gray-500">
+        <ShoppingBag className="h-10 w-10 mx-auto text-gray-300 mb-3" />
+        <p>No orders placed yet.</p>
+      </div>
+    ) : (
+      <>
+        {/* ===================== */}
+        {/* 📱 MOBILE CARD VIEW */}
+        {/* ===================== */}
+        <div className="md:hidden divide-y">
+          {customer.orders.map((order: any) => (
+            <div
+              key={order.id}
+              className="p-4 space-y-3 hover:bg-gray-50 transition"
+            >
+              {/* Top Row */}
+              <div className="flex items-center justify-between">
+                <div className="font-medium text-gray-900">
+                  #{order.id.slice(0, 8)}
+                </div>
+
+                <button
+                  onClick={() => router.push(`/admin/orders/${order.id}`)}
+                  className="text-blue-600 text-sm font-medium"
+                >
+                  View
+                </button>
+              </div>
+
+              {/* Date */}
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <Calendar className="h-4 w-4" />
+                {new Date(order.createdAt).toLocaleDateString()}
+              </div>
+
+              {/* Total */}
+              <div className="text-sm font-semibold text-gray-900">
+                Total: ₹{Number(order.total).toFixed(2)}
+              </div>
+
+              {/* Status Badges */}
+              <div className="flex flex-wrap gap-2">
+                <span
+                  className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${getPaymentColor(
+                    order.paymentStatus
+                  )}`}
+                >
+                  <Banknote className="h-3 w-3" />
+                  {order.paymentStatus}
+                </span>
+
+                <span
+                  className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold border ${getOrderColor(
+                    order.orderStatus
+                  )}`}
+                >
+                  <Package className="h-3 w-3" />
+                  {order.orderStatus}
+                </span>
+              </div>
             </div>
-
-            {!customer.orders || customer.orders.length === 0 ? (
-              <div className="p-12 text-center text-gray-500">
-                <ShoppingBag className="h-10 w-10 mx-auto text-gray-300 mb-3" />
-                <p>No orders placed yet.</p>
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm">
-                  <thead className="bg-gray-50 border-b border-gray-100 text-gray-500 uppercase text-xs">
-                    <tr>
-                      <th className="px-6 py-3 font-medium">Order ID</th>
-                      <th className="px-6 py-3 font-medium">Date</th>
-                      <th className="px-6 py-3 font-medium">Total</th>
-                      <th className="px-6 py-3 font-medium">Payment</th>
-                      <th className="px-6 py-3 font-medium">Status</th>
-                      <th className="px-6 py-3 font-medium text-right">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {customer.orders.map((order: any) => (
-                      <tr key={order.id} className="hover:bg-gray-50 transition group">
-                        <td className="px-6 py-4 font-medium text-gray-900">
-                          #{order.id.slice(0, 8)}
-                        </td>
-                        <td className="px-6 py-4 text-gray-500">
-                          {new Date(order.createdAt).toLocaleDateString()}
-                        </td>
-                        <td className="px-6 py-4 font-semibold text-gray-900">
-                          ${Number(order.total).toFixed(2)}
-                        </td>
-
-                        {/* Payment Status Badge */}
-                        <td className="px-6 py-4">
-                          <span className={`flex items-center gap-1 w-fit px-2 py-0.5 rounded-full text-[10px] font-bold border ${getPaymentColor(order.paymentStatus)}`}>
-                            <Banknote className="h-3 w-3" /> {order.paymentStatus}
-                          </span>
-                        </td>
-
-                        {/* Order Status Badge */}
-                        <td className="px-6 py-4">
-                          <span className={`flex items-center gap-1 w-fit px-2 py-0.5 rounded-full text-[10px] font-bold border ${getOrderColor(order.orderStatus)}`}>
-                            <Package className="h-3 w-3" /> {order.orderStatus}
-                          </span>
-                        </td>
-
-                        <td className="px-6 py-4 text-right">
-                          <button
-                            onClick={() => router.push(`/admin/orders/${order.id}`)}
-                            className="text-blue-600 hover:underline font-medium opacity-0 group-hover:opacity-100 transition-opacity"
-                          >
-                            View
-                          </button>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </div>
+          ))}
         </div>
+
+        {/* ===================== */}
+        {/* 🖥️ DESKTOP TABLE VIEW */}
+        {/* ===================== */}
+        <div className="hidden md:block overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead className="bg-gray-50 border-b border-gray-100 text-gray-500 uppercase text-xs">
+              <tr>
+                <th className="px-6 py-3 font-medium">Order ID</th>
+                <th className="px-6 py-3 font-medium">Date</th>
+                <th className="px-6 py-3 font-medium">Total</th>
+                <th className="px-6 py-3 font-medium">Payment</th>
+                <th className="px-6 py-3 font-medium">Status</th>
+                <th className="px-6 py-3 font-medium text-right">Action</th>
+              </tr>
+            </thead>
+
+            <tbody className="divide-y divide-gray-100">
+              {customer.orders.map((order: any) => (
+                <tr
+                  key={order.id}
+                  className="hover:bg-gray-50 transition group"
+                >
+                  <td className="px-6 py-4 font-medium text-gray-900">
+                    #{order.id.slice(0, 8)}
+                  </td>
+
+                  <td className="px-6 py-4 text-gray-500">
+                    {new Date(order.createdAt).toLocaleDateString()}
+                  </td>
+
+                  <td className="px-6 py-4 font-semibold text-gray-900">
+                    ₹{Number(order.total).toFixed(2)}
+                  </td>
+
+                  {/* Payment Status */}
+                  <td className="px-6 py-4">
+                    <span
+                      className={`flex items-center gap-1 w-fit px-2 py-0.5 rounded-full text-[10px] font-bold border ${getPaymentColor(
+                        order.paymentStatus
+                      )}`}
+                    >
+                      <Banknote className="h-3 w-3" />
+                      {order.paymentStatus}
+                    </span>
+                  </td>
+
+                  {/* Order Status */}
+                  <td className="px-6 py-4">
+                    <span
+                      className={`flex items-center gap-1 w-fit px-2 py-0.5 rounded-full text-[10px] font-bold border ${getOrderColor(
+                        order.orderStatus
+                      )}`}
+                    >
+                      <Package className="h-3 w-3" />
+                      {order.orderStatus}
+                    </span>
+                  </td>
+
+                  <td className="px-6 py-4 text-right">
+                    <button
+                      onClick={() =>
+                        router.push(`/admin/orders/${order.id}`)
+                      }
+                      className="text-blue-600 hover:underline font-medium opacity-0 group-hover:opacity-100 transition-opacity"
+                    >
+                      View
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </>
+    )}
+  </div>
+</div>
+
 
       </div>
     </div>

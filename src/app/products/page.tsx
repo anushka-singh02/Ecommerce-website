@@ -172,8 +172,8 @@ export default function ProductsPage() {
               className="mb-4"
             />
             <div className="flex justify-between text-sm text-muted-foreground">
-              <span>${priceRange[0]}</span>
-              <span>${priceRange[1]}</span>
+              <span>₹{priceRange[0]}</span>
+              <span>₹{priceRange[1]}</span>
             </div>
           </div>
         </div>
@@ -347,7 +347,7 @@ export default function ProductsPage() {
                           <p className="text-xs md:text-sm text-muted-foreground mb-1">{product.category}</p>
                           <h3 className="font-semibold mb-2 text-sm md:text-base">{product.name}</h3>
                           <div className="flex items-center gap-2 mb-2">
-                            <span className="text-base md:text-lg font-bold">${product.price.toFixed(2)}</span>
+                            <span className="text-base md:text-lg font-bold">₹{product.price.toFixed(2)}</span>
                           </div>
                           <div className="flex gap-1">
                             {product.colors.slice(0, 3).map((color: string, index: number) => (

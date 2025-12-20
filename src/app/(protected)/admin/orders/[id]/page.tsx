@@ -65,7 +65,7 @@ export default function OrderDetail() {
     : order.shippingAddress || {};
 
   return (
-    <div className="max-w-6xl mx-auto p-8 my-8">
+    <div className="max-w-6xl mx-auto p-1 my-8">
       
       {/* --- HEADER --- */}
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-6">
@@ -145,9 +145,9 @@ export default function OrderDetail() {
 
                             {/* Qty & Total */}
                             <div className="text-right">
-                                <div className="text-sm text-gray-500 mb-1">{item.quantity} x ${Number(item.price).toFixed(2)}</div>
+                                <div className="text-sm text-gray-500 mb-1">{item.quantity} x ₹{Number(item.price).toFixed(2)}</div>
                                 <div className="font-bold text-gray-900 text-lg">
-                                    ${(Number(item.price) * item.quantity).toFixed(2)}
+                                    ₹{(Number(item.price) * item.quantity).toFixed(2)}
                                 </div>
                             </div>
                         </div>
@@ -221,7 +221,7 @@ export default function OrderDetail() {
                 <div className="space-y-3 text-sm">
                     <div className="flex justify-between text-gray-600">
                         <span>Subtotal</span>
-                        <span>${Number(order.total).toFixed(2)}</span>
+                        <span>₹{Number(order.total).toFixed(2)}</span>
                     </div>
                     <div className="flex justify-between text-gray-600">
                         <span>Shipping</span>
@@ -229,7 +229,7 @@ export default function OrderDetail() {
                     </div>
                     <div className="pt-3 border-t border-gray-100 flex justify-between font-bold text-xl text-gray-900">
                         <span>Total</span>
-                        <span>${Number(order.total).toFixed(2)}</span>
+                        <span>₹{Number(order.total).toFixed(2)}</span>
                     </div>
                 </div>
                 

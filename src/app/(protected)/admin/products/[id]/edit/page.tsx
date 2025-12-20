@@ -255,7 +255,7 @@ export default function EditProduct() {
 
                         <div className="grid grid-cols-3 gap-4">
                             <div>
-                                <label className="block text-sm font-semibold text-gray-700 mb-2">Price ($)</label>
+                                <label className="block text-sm font-semibold text-gray-700 mb-2">Price (₹)</label>
                                 <input type="number" step="0.01" {...form.register("price")} className="w-full border border-gray-300 rounded-lg px-4 py-2.5" />
                             </div>
                             <div>
@@ -426,7 +426,7 @@ export default function EditProduct() {
 
                 <div className="flex justify-end gap-4 pt-6 border-t border-gray-100">
                     <button type="button" onClick={() => router.back()} className="px-6 py-2.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50">Cancel</button>
-                    <button type="submit" disabled={updateMutation.isPending} className="px-8 py-2.5 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700">
+                    <button type="submit" disabled={updateMutation.isPending} className="px-8 py-2.5 text-sm font-medium text-white bg-black rounded-lg hover:bg-[#1f3a4d]">
                         {updateMutation.isPending ? "Saving Changes..." : "Save Changes"}
                     </button>
                 </div>

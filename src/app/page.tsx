@@ -96,7 +96,7 @@ export default function Home() {
       <div>
         {/* Hide original heading on mobile */}
         <h2 className="hidden md:block text-4xl font-bold mb-4">
-          Bestsellers
+          BESTSELLERS
         </h2>
         <p className="hidden text-xl text-muted-foreground">
           Our most loved products
@@ -137,10 +137,10 @@ export default function Home() {
                       <CardContent className="p-3 md:p-4">
                         <h3 className="font-semibold mb-2 text-sm md:text-base">{product.name}</h3>
                         <div className="flex items-center gap-2">
-                          <span className="text-base md:text-lg font-bold">${product.price}</span>
+                          <span className="text-base md:text-lg font-bold">₹{product.price}</span>
                           {product.originalPrice && product.originalPrice > product.price && (
                             <span className="text-xs md:text-sm text-muted-foreground line-through">
-                              ${product.originalPrice}
+                              ₹{product.originalPrice}
                             </span>
                           )}
                         </div>
@@ -176,7 +176,7 @@ export default function Home() {
       <div>
         {/* Hide original heading on mobile */}
         <h2 className="hidden md:block text-4xl font-bold mb-4">
-          Bestsellers
+          TRENDING NOW
         </h2>
         <p className="hidden text-xl text-muted-foreground">
           Our most popular products this season
@@ -216,10 +216,10 @@ export default function Home() {
                       <CardContent className="p-3 md:p-4">
                         <h3 className="font-semibold mb-2 text-sm md:text-base">{product.name}</h3>
                         <div className="flex items-center gap-2">
-                          <span className="text-base md:text-lg font-bold">${product.price}</span>
+                          <span className="text-base md:text-lg font-bold">₹{product.price}</span>
                           {product.originalPrice && product.originalPrice > product.price && (
                             <span className="text-xs md:text-sm text-muted-foreground line-through">
-                              ${product.originalPrice}
+                              ₹{product.originalPrice}
                             </span>
                           )}
                         </div>
@@ -258,7 +258,7 @@ export default function Home() {
                     Check out the latest drops added just for you.
                   </p>
                   <Link href="/products?sort=newest">
-                    <Button size="lg" variant="secondary" className="bg-[#212529] text-primary hover:bg-white/90">
+                    <Button size="lg" variant="secondary" className="bg-black text-white hover:bg-black/80">
                       Shop New Arrivals
                     </Button>
                   </Link>
@@ -273,7 +273,7 @@ export default function Home() {
                     Get 15% off your first order when you sign up
                   </p>
                   <Link href="/signup">
-                    <Button size="lg" variant="secondary" className="bg-white text-primary hover:bg-white/90">
+                    <Button size="lg" variant="secondary" className="bg-black text-white hover:bg-black/80">
                       Sign Up Now
                     </Button>
                   </Link>

@@ -13,7 +13,8 @@ import { useAuthStore } from "@/store/useAuthStore"
 import { storeService } from "@/lib/api/store" // ✅ Import API service
 import { userService } from "@/lib/api/user" // ✅ Import User Service
 import { useQuery } from "@tanstack/react-query" // ✅ Import React Query
-
+import whitelogo from "../../public/whitelogo.png"
+import blacklogo from "../../public/logo.jpg"
 // Helper to format currency
 const formatPrice = (price: number) => {
   return new Intl.NumberFormat('en-US', {
@@ -126,7 +127,7 @@ export function Header() {
                     <Link href="/" onClick={() => setMobileMenuOpen(false)}>
                       <div className="relative h-8 w-24">
                         <Image
-                          src="https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/render/image/public/document-uploads/raawrlogo-1764828536372.webp?width=8000&height=8000&resize=contain"
+                          src={whitelogo}
                           alt="Raawr"
                           fill
                           className="object-contain"
@@ -153,13 +154,24 @@ export function Header() {
             {/* Logo */}
             <Link href="/" className="flex items-center space-x-2 shrink-0">
               <div className="relative h-10 w-32">
+
+                {/* Visible on mobile, hidden on desktop */}
                 <Image
-                  src="https://slelguoygbfzlpylpxfs.supabase.co/storage/v1/render/image/public/document-uploads/raawrlogo-1764828536372.webp?width=8000&height=8000&resize=contain"
+                  src={whitelogo}
                   alt="Raawr"
                   fill
-                  className="object-contain"
+                  className="object-contain md:hidden"
                   priority
                 />
+                {/* Hidden on mobile, visible on desktop */}
+                <Image
+                  src={blacklogo}
+                  alt="Raawr"
+                  fill
+                  className="object-contain hidden md:block"
+                  priority
+                />
+
               </div>
             </Link>
 

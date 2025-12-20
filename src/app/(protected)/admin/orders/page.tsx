@@ -167,7 +167,7 @@ export default function OrdersPage() {
               {new Date(order.createdAt).toLocaleDateString()}
             </span>
             <span className="font-semibold text-gray-900">
-              ${Number(order.total).toFixed(2)}
+              ₹{Number(order.total).toFixed(2)}
             </span>
           </div>
 

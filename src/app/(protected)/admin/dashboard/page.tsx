@@ -33,7 +33,7 @@ export default function Dashboard() {
   const stats = statsData ? {
     cards: {
       // FIX 1: Removed '.data' - backend returns 'revenue' directly
-      "Total Revenue": `$${(statsData.revenue || 0).toLocaleString('en-US', { 
+      "Total Revenue": `₹${(statsData.revenue || 0).toLocaleString('en-US', { 
           minimumFractionDigits: 2, 
           maximumFractionDigits: 2 
       })}`,
@@ -85,11 +85,11 @@ export default function Dashboard() {
                   fontSize={12} 
                   tickLine={false} 
                   axisLine={false} 
-                  tickFormatter={(value) => `$${value}`} 
+                  tickFormatter={(value) => `₹${value}`} 
                 />
                 <Tooltip 
                   contentStyle={{ borderRadius: "8px", border: "none", boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}
-                  formatter={(value: any) => [`$${value}`, "Revenue"]}
+                  formatter={(value: any) => [`₹${value}`, "Revenue"]}
                 />
                 <Line 
                   type="monotone" 
