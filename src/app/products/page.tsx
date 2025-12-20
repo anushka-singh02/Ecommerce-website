@@ -218,7 +218,7 @@ export default function ProductsPage() {
       </div>
 
       {/* --- NEW APPLY BUTTON --- */}
-      <div className="pt-6 mt-4 border-t sticky bottom-0 bg-white pb-4">
+      <div className="pt-6 mt-4 border-t sticky bottom-0 pb-4">
         <Button 
             className="w-full" 
             onClick={handleApplyFilters}
@@ -278,7 +278,7 @@ export default function ProductsPage() {
                       <SheetHeader>
                         <SheetTitle>Filters</SheetTitle>
                       </SheetHeader>
-                      <div className="mt-6 flex-1 overflow-y-auto">
+                      <div className="mt-6 flex-1 p-6 overflow-y-auto">
                         <FilterSidebar />
                       </div>
                     </SheetContent>

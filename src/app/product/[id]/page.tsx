@@ -422,7 +422,7 @@ export default function ProductDetailPage() {
                   <Truck className="h-5 w-5 text-primary mt-0.5" />
                   <div>
                     <p className="font-medium">Free Shipping</p>
-                    <p className="text-sm text-muted-foreground">On orders over ₹500</p>
+                    <p className="text-sm text-muted-foreground">On orders over ₹75</p>
                   </div>
                 </div>
                 {/* ... other features ... */}

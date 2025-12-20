@@ -5,12 +5,22 @@ import { adminService } from "@/lib/api/admin"
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts"
 
 // Helper to format chart data
+// Helper to format chart data
 const processChartData = (data: any[]) => {
-  if (!data || !Array.isArray(data)) return []; // Safety check
+  if (!data || !Array.isArray(data)) return []; 
   
-  const grouped = data.reduce((acc: any, order: any) => {
+  // 1. Sort by Date first
+  const sortedData = [...data].sort((a, b) => 
+    new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
+  );
+
+  const grouped = sortedData.reduce((acc: any, order: any) => {
     const date = new Date(order.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" });
-    acc[date] = (acc[date] || 0) + (order.total || 0);
+    
+    // 🚨 THE FIX: Wrapped in Number() to prevent string concatenation
+    const orderAmount = Number(order.total) || 0;
+    
+    acc[date] = (acc[date] || 0) + orderAmount;
     return acc;
   }, {});
 
@@ -29,19 +39,17 @@ export default function Dashboard() {
     queryFn: () => adminService.getMetrics("30d"),
   })
 
-  // 2. Prepare Data (Adjusted for API Structure)
+  // 2. Prepare Data
   const stats = statsData ? {
     cards: {
-      // FIX 1: Removed '.data' - backend returns 'revenue' directly
-      "Total Revenue": `₹${(statsData.revenue || 0).toLocaleString('en-US', { 
+      // FIX 2: Changed 'en-US' to 'en-IN' for correct Indian numbering (e.g., 1,50,000 instead of 150,000)
+      "Total Revenue": `₹${(statsData.revenue || 0).toLocaleString('en-IN', { 
           minimumFractionDigits: 2, 
           maximumFractionDigits: 2 
       })}`,
       "Total Orders": statsData.totalOrders || 0,
       "Low Stock Items": statsData.lowStockCount || 0,
     },
-    // FIX 2: metricsData comes as { range: "30d", data: [...] }
-    // So we access metricsData.data, not metricsData.data.data
     sales: processChartData(metricsData?.data || []) 
   } : null;
 

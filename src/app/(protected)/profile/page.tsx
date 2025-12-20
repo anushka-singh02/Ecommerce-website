@@ -29,12 +29,12 @@ interface Order {
   totalAmount?: number
   paymentStatus: string
   orderStatus: string
-  paymentMethod?: string // ✅ Added
-  shippingAddress?: any // ✅ Added
+  paymentMethod?: string
+  shippingAddress?: any
   items: Array<{
     id: string
-    quantity: number // ✅ Added
-    price: number // ✅ Added
+    quantity: number
+    price: number
     product: {
       name: string
       images: string[]
@@ -299,7 +299,7 @@ export default function ProfilePage() {
                 </Card>
               </TabsContent>
 
-              {/* 2. ORDERS */}
+              {/* 2. ORDERS (✅ FIXED RESPONSIVENESS) */}
               <TabsContent value="orders" className="space-y-6 mt-0">
                 <div>
                   <h2 className="text-2xl font-bold mb-2">Order History</h2>
@@ -316,37 +316,48 @@ export default function ProfilePage() {
                       const safeTotal = formatPrice(order.total ?? order.totalAmount);
                       const dateStr = order.createdAt ? new Date(order.createdAt).toLocaleDateString() : 'Date unavailable';
                       return (
-                        <div key={order.id} className="group flex flex-col sm:flex-row items-start sm:items-center gap-6 p-6 border rounded-xl hover:border-black/20 transition-all bg-white shadow-sm">
-                          <div className="relative h-24 w-24 flex-shrink-0 bg-gray-100 rounded-lg overflow-hidden border">
-                            {mainItem?.images?.[0] ? (
-                              <Image src={mainItem.images[0]} alt={mainItem.name || "Product"} fill className="object-cover" />
-                            ) : (
-                              <div className="flex items-center justify-center h-full text-gray-400 text-xs">No Image</div>
-                            )}
-                          </div>
-                          <div className="flex-1 space-y-2">
-                            <div className="flex justify-between items-start">
-                              <div>
-                                <h3 className="font-bold text-lg">{mainItem?.name || "Order Item"}</h3>
-                                {order.items && order.items.length > 1 && (
-                                  <p className="text-sm text-muted-foreground"> + {order.items.length - 1} other items </p>
-                                )}
+                        <div key={order.id} className="group flex flex-col sm:flex-row items-start sm:items-center gap-4 sm:gap-6 p-4 sm:p-6 border rounded-xl hover:border-black/20 transition-all bg-white shadow-sm">
+
+                          {/* Wrapper for Image and Details to keep them side-by-side on mobile */}
+                          <div className="flex w-full flex-1 gap-4 items-start">
+                            {/* Image */}
+                            <div className="relative h-20 w-20 sm:h-24 sm:w-24 flex-shrink-0 bg-gray-100 rounded-lg overflow-hidden border">
+                              {mainItem?.images?.[0] ? (
+                                <Image src={mainItem.images[0]} alt={mainItem.name || "Product"} fill className="object-cover" />
+                              ) : (
+                                <div className="flex items-center justify-center h-full text-gray-400 text-xs">No Image</div>
+                              )}
+                            </div>
+
+                            {/* Details */}
+                            <div className="flex-1 space-y-1.5 sm:space-y-2 min-w-0">
+                              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-1 sm:gap-4">
+                                <h3 className="font-bold text-base sm:text-lg truncate pr-2">{mainItem?.name || "Order Item"}</h3>
+                                <span className={`self-start sm:self-auto px-2.5 py-0.5 rounded-full text-[10px] sm:text-xs font-semibold capitalize whitespace-nowrap ${(order.orderStatus || "").toUpperCase() === "DELIVERED" ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700"
+                                  }`}>
+                                  {(order.orderStatus || "Pending").toLowerCase()}
+                                </span>
                               </div>
-                              <span className={`px-3 py-1 rounded-full text-xs font-semibold capitalize ${(order.orderStatus || "").toUpperCase() === "DELIVERED" ? "bg-green-100 text-green-700" : "bg-blue-100 text-blue-700"
-                                }`}> {(order.orderStatus || "Pending").toLowerCase()} </span>
-                            </div>
-                            <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-muted-foreground">
-                              <span>Order <span className="font-medium text-black">#{order.id.slice(0, 8)}</span></span>
-                              <span>•</span>
-                              <span>{dateStr}</span>
+
+                              {order.items && order.items.length > 1 && (
+                                <p className="text-xs sm:text-sm text-muted-foreground"> + {order.items.length - 1} other items </p>
+                              )}
+
+                              <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs sm:text-sm text-muted-foreground pt-1">
+                                <span>Order <span className="font-medium text-black">#{order.id.slice(0, 8)}</span></span>
+                                <span className="hidden sm:inline">•</span>
+                                <span>{dateStr}</span>
+                              </div>
                             </div>
                           </div>
-                          <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto mt-2 sm:mt-0 gap-3">
-                            <span className="font-bold text-xl">₹{safeTotal}</span>
-                            {/* ✅ BUTTON NOW OPENS MODAL */}
+
+                          {/* Action Section (Bottom on Mobile, Right on Desktop) */}
+                          <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto pt-3 mt-1 sm:pt-0 sm:mt-0 sm:border-t-0 gap-3">
+                            <span className="font-bold text-lg sm:text-xl">₹{safeTotal}</span>
                             <Button
                               variant="outline"
-                              className="w-full sm:w-auto"
+                              size="sm"
+                              className="w-auto sm:w-auto text-xs sm:text-sm h-9"
                               onClick={() => handleViewOrder(order)}
                             >
                               View Details
@@ -528,62 +539,62 @@ export default function ProfilePage() {
                     <Input id="zip" placeholder="ZIP" value={addressForm.zip} onChange={(e) => setAddressForm({ ...addressForm, zip: e.target.value })} required />
                   </div>
                 </div>
-                <Button type="submit" className="w-full mt-2">Save Address</Button>
+                <Button type="submit" className="w-full mt-2" onClick={(e)=> handleAddAddress(e)}>Save Address</Button>
               </form>
             </CardContent>
           </Card>
         </div>
       )}
 
-      {/* ✅ 2. ORDER DETAILS MODAL */}
+      {/* ✅ 2. ORDER DETAILS MODAL (DARK THEME FIXED) */}
       {isOrderModalOpen && selectedOrder && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
-          <Card className="w-full max-w-2xl relative animate-in fade-in zoom-in duration-200 max-h-[90vh] flex flex-col">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+          <Card className="w-full max-w-2xl relative animate-in fade-in zoom-in duration-200 max-h-[90vh] flex flex-col bg-zinc-950 border-zinc-800 text-white shadow-2xl">
             <button
               onClick={() => setIsOrderModalOpen(false)}
-              className="absolute top-4 right-4 p-2 rounded-full hover:bg-gray-100 transition-colors z-10"
+              className="absolute top-4 right-4 p-2 rounded-full hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors z-10"
             >
               <X className="h-5 w-5" />
             </button>
-            <CardHeader className="border-b">
+            <CardHeader className="border-b border-zinc-800">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
                 <div>
-                  <CardTitle className="flex items-center gap-2 flex-wrap">
+                  <CardTitle className="flex items-center gap-2 flex-wrap text-white">
                     Order #{selectedOrder.id.slice(0, 8)}
 
-                    {/* 1. ORDER STATUS (Logistics) */}
+                    {/* 1. ORDER STATUS */}
                     <span
                       title="Order Status"
-                      className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase border ${selectedOrder.orderStatus === 'DELIVERED' ? 'bg-green-50 text-green-700 border-green-200' :
-                          selectedOrder.orderStatus === 'CANCELLED' ? 'bg-red-50 text-red-700 border-red-200' :
-                            'bg-blue-50 text-blue-700 border-blue-200'
+                      className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase border ${selectedOrder.orderStatus === 'DELIVERED' ? 'bg-green-900/30 text-green-400 border-green-800' :
+                        selectedOrder.orderStatus === 'CANCELLED' ? 'bg-red-900/30 text-red-400 border-red-800' :
+                          'bg-blue-900/30 text-blue-400 border-blue-800'
                         }`}>
                       <Package className="h-3.5 w-3.5" />
                       {selectedOrder.orderStatus}
                     </span>
 
-                    {/* 2. PAYMENT STATUS (Money) */}
+                    {/* 2. PAYMENT STATUS */}
                     <span
                       title="Payment Status"
-                      className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase border ${selectedOrder.paymentStatus === 'PAID' ? 'bg-emerald-50 text-emerald-700 border-emerald-200' :
-                          selectedOrder.paymentStatus === 'FAILED' ? 'bg-red-50 text-red-700 border-red-200' :
-                            selectedOrder.paymentStatus === 'REFUNDED' ? 'bg-purple-50 text-purple-700 border-purple-200' :
-                              'bg-amber-50 text-amber-700 border-amber-200'
+                      className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold uppercase border ${selectedOrder.paymentStatus === 'PAID' ? 'bg-emerald-900/30 text-emerald-400 border-emerald-800' :
+                        selectedOrder.paymentStatus === 'FAILED' ? 'bg-red-900/30 text-red-400 border-red-800' :
+                          selectedOrder.paymentStatus === 'REFUNDED' ? 'bg-purple-900/30 text-purple-400 border-purple-800' :
+                            'bg-amber-900/30 text-amber-400 border-amber-800'
                         }`}>
                       <Banknote className="h-3.5 w-3.5" />
                       {selectedOrder.paymentStatus}
                     </span>
 
                   </CardTitle>
-                  <CardDescription className="flex items-center gap-2 mt-1">
+                  <CardDescription className="flex items-center gap-2 mt-1 text-zinc-400">
                     <Calendar className="h-3 w-3" />
                     {new Date(selectedOrder.createdAt).toLocaleDateString()} at {new Date(selectedOrder.createdAt).toLocaleTimeString()}
                   </CardDescription>
                 </div>
 
-                {/* Payment Method Badge (unchanged) */}
+                {/* Payment Method Badge */}
                 {selectedOrder.paymentMethod && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground bg-gray-50 px-3 py-1 rounded-md border border-gray-100">
+                  <div className="flex items-center gap-2 text-sm text-zinc-300 bg-zinc-900 px-3 py-1 rounded-md border border-zinc-800">
                     <CreditCard className="h-4 w-4" />
                     <span className="font-medium">{selectedOrder.paymentMethod}</span>
                   </div>
@@ -597,56 +608,56 @@ export default function ProfilePage() {
 
                 {/* Product List */}
                 <div className="space-y-4">
-                  <h3 className="font-semibold text-sm text-gray-500 uppercase tracking-wider">Items Ordered</h3>
+                  <h3 className="font-semibold text-sm text-zinc-500 uppercase tracking-wider">Items Ordered</h3>
                   {selectedOrder.items.map((item, idx) => (
                     <div key={idx} className="flex gap-4 items-start">
-                      <div className="relative h-16 w-16 bg-gray-100 rounded-md overflow-hidden border flex-shrink-0">
+                      <div className="relative h-16 w-16 bg-zinc-900 rounded-md overflow-hidden border border-zinc-800 flex-shrink-0">
                         {item.product.images?.[0] ? (
                           <Image src={item.product.images[0]} alt={item.product.name} fill className="object-cover" />
                         ) : (
-                          <div className="w-full h-full flex items-center justify-center text-xs text-gray-400">No Img</div>
+                          <div className="w-full h-full flex items-center justify-center text-xs text-zinc-600">No Img</div>
                         )}
                       </div>
                       <div className="flex-1">
-                        <h4 className="font-medium text-sm line-clamp-2">{item.product.name}</h4>
-                        <p className="text-xs text-muted-foreground mt-1">Qty: {item.quantity || 1}</p>
+                        <h4 className="font-medium text-sm line-clamp-2 text-zinc-200">{item.product.name}</h4>
+                        <p className="text-xs text-zinc-500 mt-1">Qty: {item.quantity || 1}</p>
                       </div>
-                      <div className="font-semibold text-sm">
+                      <div className="font-semibold text-sm text-white">
                         ₹{formatPrice((item.price || 0) * (item.quantity))}
                       </div>
                     </div>
                   ))}
                 </div>
 
-                <Separator />
+                <Separator className="bg-zinc-800" />
 
                 {/* Shipping Info */}
                 {selectedOrder.shippingAddress && (
                   <div>
-                    <h3 className="font-semibold text-sm text-gray-500 uppercase tracking-wider mb-2">Shipping Details</h3>
-                    <div className="text-sm space-y-1">
-                      <p className="font-medium text-black">{selectedOrder.shippingAddress.firstName} {selectedOrder.shippingAddress.lastName}</p>
-                      <p className="text-muted-foreground">{selectedOrder.shippingAddress.address}</p>
-                      <p className="text-muted-foreground">{selectedOrder.shippingAddress.city}, {selectedOrder.shippingAddress.state} {selectedOrder.shippingAddress.zipCode}</p>
-                      <p className="text-muted-foreground">{selectedOrder.shippingAddress.phone}</p>
+                    <h3 className="font-semibold text-sm text-zinc-500 uppercase tracking-wider mb-2">Shipping Details</h3>
+                    <div className="text-sm space-y-1 text-zinc-300">
+                      <p className="font-medium text-white">{selectedOrder.shippingAddress.firstName} {selectedOrder.shippingAddress.lastName}</p>
+                      <p className="text-zinc-400">{selectedOrder.shippingAddress.address}</p>
+                      <p className="text-zinc-400">{selectedOrder.shippingAddress.city}, {selectedOrder.shippingAddress.state} {selectedOrder.shippingAddress.zipCode}</p>
+                      <p className="text-zinc-400">{selectedOrder.shippingAddress.phone}</p>
                     </div>
                   </div>
                 )}
               </CardContent>
             </div>
 
-            <CardFooter className="border-t bg-gray-50 p-6">
+            <CardFooter className="border-t border-zinc-800 bg-zinc-900/50 p-6">
               <div className="w-full space-y-3">
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Subtotal</span>
-                  <span>₹{formatPrice(selectedOrder.total ?? selectedOrder.totalAmount)}</span>
+                  <span className="text-zinc-400">Subtotal</span>
+                  <span className="text-zinc-200">₹{formatPrice(selectedOrder.total ?? selectedOrder.totalAmount)}</span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Shipping</span>
-                  <span className="text-green-600">Free</span>
+                  <span className="text-zinc-400">Shipping</span>
+                  <span className="text-green-400">Free</span>
                 </div>
-                <Separator />
-                <div className="flex justify-between font-bold text-lg">
+                <Separator className="bg-zinc-800" />
+                <div className="flex justify-between font-bold text-lg text-white">
                   <span>Total</span>
                   <span>₹{formatPrice(selectedOrder.total ?? selectedOrder.totalAmount)}</span>
                 </div>

@@ -1,4 +1,4 @@
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'https://ecommerce-backend-7b8z.onrender.com/api';
 
 let isRefreshing = false;
 let failedQueue: any[] = [];

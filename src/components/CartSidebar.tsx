@@ -187,7 +187,7 @@ export function CartSidebar({ open, onClose }: CartSidebarProps) {
                   <div className="flex items-center justify-between text-sm">
                     <span className="text-muted-foreground flex items-center gap-2">
                       <Truck className="h-4 w-4" />
-                      Add <span className="font-semibold text-foreground">₹{(500 - subtotal).toFixed(2)}</span> for free shipping
+                      Add <span className="font-semibold text-foreground">₹{(75 - subtotal).toFixed(2)}</span> for free shipping
                     </span>
                   </div>
                   <div className="h-2 sm:h-1.5 bg-muted rounded-full overflow-hidden">
