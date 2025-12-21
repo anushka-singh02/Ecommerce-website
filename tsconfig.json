@@ -32,8 +32,8 @@
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    ".next/types/**/*.ts",
-    ".next/dev/types/**/*.ts",
+    "../ecommerce_frontend/.next/types/**/*.ts",
+    "../ecommerce_frontend/.next/dev/types/**/*.ts",
     "**/*.mts"
 , "src/types/api.ts"  ],
   "exclude": [
